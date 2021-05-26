@@ -1,8 +1,6 @@
 # GlobalChangeSpace
 Code and data supplement for the manuscript "Representation of global change across biodiversity databases" by Daskalova et al.
 
-Code and data for the manuscript “Representation of global change across biodiversity databases”
-
 This repository is maintained by Gergana Daskalova. For any questions, please contact gndaskalova@gmail.com.
 
 ### Abstract 
