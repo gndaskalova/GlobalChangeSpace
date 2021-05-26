@@ -1,0 +1,25 @@
+[general]
+creator=R package 'raster'
+created=2019-03-03 15:04:42
+[georeference]
+nrows=179
+ncols=348
+xmin=-17418892.3574184
+ymin=-8939398.53852842
+xmax=17381107.6425816
+ymax=8960601.46147158
+projection=+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0
+[data]
+datatype=FLT4S
+byteorder=little
+nbands=6
+bandorder=BIL
+minvalue=0.132231613509583:0:0:0.000952121871599565:0:0.259988036516215
+maxvalue=4.84182629660495:4.90420121974768:1:3.95894347160771:1:13.6396385934685
+nodatavalue=-3.4e+38
+[legend]
+legendtype=
+values=
+color=
+[description]
+layername=Climate_change:Human_use:Human_population:Pollution:Invasions:Cumulative
