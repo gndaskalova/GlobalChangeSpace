@@ -21,6 +21,40 @@ All R scripts can be found in the code folder. They are sorted based on order of
 - 07-plot-figures.R # To create figures
 ```
 
+### Data
+
+#### Living Planet Database
+
+The population time series came from the Living Planet Database, publicly available from http://www.livingplanetindex.org
+
+#### BioTIME
+
+The biodiversity time series came from the BioTIME Database. Approximately 92% of the biodiversity studies analysed here are available as part of the published BioTIME Database. The data are openly available, and can be accessed on Zenodo (https://doi.org/10.5281/zenodo.1211105) or through the BioTIME website (http://biotime.st-andrews.ac.uk/). The remaining 8% of the studies were used with permission, with details on how to download those data available in the supplementary information.
+
+The public studies that were included in the version of BioTIME we analyzed can be downloaded from http://biotime.st-andrews.ac.uk/BioTIME_download.php
+
+For more information about the BioTIME database, please see:
+
+Dornelas, M., L.H. Antao, F. Moyes, A.E. Bates, A.E. Magurran, and BioTIME consortium (200+ authors). 2018. BioTIME: a database of biodiversity time-series for the Anthropocene. Global Ecology and Biogeography. 10.1111/geb.12729
+
+#### Global change driver data
+
+We used the 16 marine and terrestrial global change driver layers compiled by Bowler et al. 2020. We selected these layers because they had been harmonized across both realms and hence were most suitable for our global analysis. As in Bowler et al., these layers were grouped into five focal drivers: human use (land-use for the terrestrial realm, and exploitation for the marine realm), climate change, human population density, pollution and invasion potential. The driver data are spatially-explicit, but current data limitations prevent us from extracting temporally-explicit values of the magnitudes of most of these drivers over time. For details on the individual layers forming the global change data, including their resolutions and temporal coverage, see Table S1 in Bowler et al. 2020.
+
+Bowler, D. E., Bjorkman, A. D., Dornelas, M., Myers‐Smith, I. H., Navarro, L. M., Niamir, A., ... & Bates, A. E. (2020). Mapping human pressures on biodiversity across the planet uncovers anthropogenic threat complexes. People and Nature, 2(2), 380-394.
+
+#### Land Use Harmonisation Dataset
+
+Available from http://luh.umd.edu
+
+#### Sea surface temperatures from NOAA
+
+Available from https://psl.noaa.gov/repository/entry/show/PSD+Climate+Data+Repository/Public/PSD+Datasets/NOAA+OI+SST/Weekly+and+Monthly/sst.mnmean.nc?entryid=cac1c2a6-a864-4409-bb77-1fdead8eeb6e&output=default.html
+
+#### Air temperatures from CRU
+
+Available from https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.01/cruts.1709081022.v4.01/tmp/
+
 ### R and package versions
 
 The session information is attached below. Some of the scripts take a while to run because of the large amounts of data.
