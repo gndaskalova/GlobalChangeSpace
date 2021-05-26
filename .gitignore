@@ -60,3 +60,6 @@ GlobalChangeSpace.Rproj
 data/output/global_models_march.RData
 packrat/lib*/
 packrat/src/
+
+# big file
+data/input/predicts.csv
