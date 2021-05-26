@@ -30,6 +30,12 @@ load("data/input/rarefied_mediansOct2017.Rdata")
 load("data/input/rarefied_medians2018.Rdata")
 
 # Space for time community data from PREDICTS
+# Note this file is not on GitHub because of its size
+# The file can be downloaded here 
+# https://data.nhm.ac.uk/dataset/the-2016-release-of-the-predicts-database
+# Choose Database in zipped CSV format
+# The file is originally called database.csv, I renamed it to predicts.csv
+# The file path below needs to be updated if the file is put in another location
 predicts <- read.csv("data/input/predicts.csv")
 
 # Drivers ----
