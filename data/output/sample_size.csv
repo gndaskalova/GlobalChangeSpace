@@ -1,0 +1,23 @@
+"","type","realm","taxa","n"
+"1","Biodiversity","Marine","Birds",9438
+"2","Biodiversity","Marine","Fish",24297
+"3","Biodiversity","Marine","Mammals",480
+"4","Biodiversity","Marine","Marine invertebrates",2044
+"5","Biodiversity","Marine","Benthos",4383
+"6","Biodiversity","Marine","All",1538
+"7","Biodiversity","Marine","Marine invertebrates/plants",161
+"8","Biodiversity","Terrestrial","Terrestrial plants",177
+"9","Biodiversity","Terrestrial","Birds",1600
+"10","Biodiversity","Terrestrial","Mammals",40
+"11","Biodiversity","Terrestrial","Terrestrial invertebrates",71
+"12","Biodiversity","Terrestrial","All",30
+"13","Biodiversity","Terrestrial","Amphibians",273
+"14","Population","Marine","Actinopterygii",1120
+"15","Population","Marine","Aves",1001
+"16","Population","Marine","Elasmobranchii",131
+"17","Population","Marine","Mammalia",289
+"18","Population","Marine","Reptilia",160
+"19","Population","Terrestrial","Amphibia",46
+"20","Population","Terrestrial","Aves",3447
+"21","Population","Terrestrial","Mammalia",1036
+"22","Population","Terrestrial","Reptilia",111
