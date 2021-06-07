@@ -12,12 +12,28 @@ All R scripts can be found in the code folder. They are sorted based on order of
 ### Scripts
 
 ```
-- 01-extract-drivers-over-space.R  # To extract global change driver intensity for five drivers across the sites represented in the Living Planet, BioTIME and PREDICTS databases, as well as randomly around the world 
-- 02-extract-terr-temp-over-time.R # To extract annual temperature over the duration of each time series in the Living Planet and BioTIME databases (terrestrial realm) 
-- 03-extract-marine-temp-over-time.R # To extract annual temperature over the duration of each time series in the Living Planet and BioTIME databases (marine realm) 
-- 04-extract-marine-ecoregions-lpd.R # To extract the marine ecoregions represented in the Living Planet Database 
-- 05-run-models.R # To run statistical models 
-- 06-calculate-predictions.R # To calculate model predictions 
+- 01-extract-drivers-over-space.R 
+# To extract global change driver intensity for five drivers 
+# across the sites represented in the Living Planet, BioTIME 
+# and PREDICTS databases, as well as randomly around the world
+
+- 02-extract-terr-temp-over-time.R
+# To extract annual temperature over the duration of each time series
+# in the Living Planet and BioTIME databases (terrestrial realm)
+
+- 03-extract-marine-temp-over-time.R
+# To extract annual temperature over the duration of each time series
+ in the Living Planet and BioTIME databases (marine realm)
+ 
+- 04-extract-marine-ecoregions-lpd.R
+# To extract the marine ecoregions represented in the Living Planet Database
+
+- 05-run-models.R
+# To run statistical models
+
+- 06-calculate-predictions.R
+# To calculate model predictions
+
 - 07-plot-figures.R # To create figures
 ```
 
