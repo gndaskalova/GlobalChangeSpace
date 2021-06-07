@@ -7,6 +7,9 @@
 
 # Libraries
 
+# New section ######
+# Another section -------
+
 # devtools::install_github("wilkox/treemapify")
 library(treemapify)
 library(viridis)
