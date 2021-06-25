@@ -7,9 +7,6 @@
 
 # Libraries
 
-# New section ######
-# Another section -------
-
 # devtools::install_github("wilkox/treemapify")
 library(treemapify)
 library(viridis)
@@ -171,8 +168,9 @@ combined_pop_marine_simple <- combined_pop_marine %>% dplyr::select(-cumulative,
 
 pop_mar_pca <- prcomp(combined_pop_marine_simple[, -6], scale = TRUE)
 
-(combined_pop_pca_mar <- fviz_pca_biplot(pop_mar_pca, label ="var", select.var = list(contrib = 2),
-                habillage = combined_pop_marine_simple$sampling2, col.var = "grey20",
+(combined_pop_pca_mar <- fviz_pca_biplot(pop_mar_pca, label ="var", 
+                                         select.var= list(name = c("human_population", "climate_change")),
+                                         habillage = combined_pop_marine_simple$sampling2, col.var = "grey20",
                 addEllipses = TRUE, ellipse.level = 0.95,
                 repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
     scale_colour_manual(values = c("grey80", "#419191")) +
@@ -181,11 +179,21 @@ pop_mar_pca <- prcomp(combined_pop_marine_simple[, -6], scale = TRUE)
     theme_void() +
     annotate(geom = "text", x = -2.5, y = -2.8, label = "Climate change", size = 5,
                color="grey20") +
-    annotate(geom = "text", x = -4.5, y = 0.2, label = "Pollution", size = 5,
-             color="grey20") +
+  #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+   #          color="grey20") +
     labs(title = NULL) +
     coord_cartesian(xlim = c(5, -5),
                     ylim = c(3, -3)))
+
+library(siar)
+
+#devtools::install_github("andrewljackson/SIBER@v2.1.6", 
+#                         build_vignettes = TRUE)
+library(SIBER)
+
+versicolor <- pop_mar_pca$x[combined_pop_marine_simple$sampling2=="Marine Random sampling",]
+virginica <- pop_mar_pca$x[combined_pop_marine_simple$sampling2=="Marine Living Planet Database",]
+maxLikOverlap((versicolor[,1], versicolor[,2], virginica[,1], virginica[,2], steps = 5))
 
 combined_pop_terr_simple <- combined_pop_terr %>% dplyr::select(-cumulative, - realm) %>%
   distinct()
@@ -193,7 +201,7 @@ combined_pop_terr_simple <- combined_pop_terr %>% dplyr::select(-cumulative, - r
 pop_terr_pca <- prcomp(combined_pop_terr_simple[, 1:5], scale = TRUE)
 
 (combined_pop_pca_terr <- fviz_pca_biplot(pop_terr_pca, label ="var", 
-                                          select.var= list(name = c("pollution", "climate_change")),
+                                          select.var= list(name = c("human_population", "climate_change")),
                                          habillage = combined_pop_terr_simple$sampling2,
                                          col.var = "grey20",
                                          addEllipses = TRUE, ellipse.level = 0.95,
@@ -204,18 +212,18 @@ pop_terr_pca <- prcomp(combined_pop_terr_simple[, 1:5], scale = TRUE)
     theme_void() +
     annotate(geom = "text", x = -2.9, y = -3.5, label = "Climate change", size = 5,
              color="grey20") +
-    annotate(geom = "text", x = -6.62, y = 0.3, label = "Pollution", size = 5,
-             color="grey20") +
+   # annotate(geom = "text", x = -6.62, y = 0.5, label = "Human density", size = 5,
+    #         color="grey20") +
     labs(title = NULL) +
     coord_cartesian(xlim = c(7, -7),
                     ylim = c(3.5, -3.5)))
 
 pop_pca_panel <- grid.arrange(combined_pop_pca_terr, combined_pop_pca_mar, ncol = 2)
 
-ggsave(pop_pca_panel, filename = "figures/pop_pca_Apr2021b.pdf",
+ggsave(pop_pca_panel, filename = "figures/pop_pca_June2021.pdf",
        height = 5, width = 10)
 
-ggsave(pop_pca_panel, filename = "figures/pop_pca_Apr2021b.png",
+ggsave(pop_pca_panel, filename = "figures/pop_pca_June2021.png",
        height = 5, width = 10)
 
 bt.coords$sampling <- "BioTIME"
@@ -237,7 +245,8 @@ combined_bio_marine_simple <- combined_bio_marine %>% dplyr::select(-cumulative,
 
 bio_mar_pca <- prcomp(combined_bio_marine_simple[, -6], scale = TRUE)
 
-(combined_bio_pca_mar <- fviz_pca_biplot(bio_mar_pca, label ="var", select.var = list(contrib = 2),
+(combined_bio_pca_mar <- fviz_pca_biplot(bio_mar_pca, label ="var", 
+                                         select.var= list(name = c("human_population", "climate_change")),
                                          habillage = combined_bio_marine_simple$sampling2, col.var = "grey20",
                                          addEllipses = TRUE, ellipse.level = 0.95,
                                          repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
@@ -247,8 +256,8 @@ bio_mar_pca <- prcomp(combined_bio_marine_simple[, -6], scale = TRUE)
     theme_void() +
     annotate(geom = "text", x = 2.5, y = -2.8, label = "Climate change", size = 5,
              color="grey20") +
-    annotate(geom = "text", x = 4.5, y = 0.2, label = "Pollution", size = 5,
-             color="grey20") +
+   # annotate(geom = "text", x = 4.5, y = 0.2, label = "Human density", size = 5,
+    #         color="grey20") +
     labs(title = NULL) +
     coord_cartesian(xlim = c(-5, 5),
                     ylim = c(3, -3)))
@@ -259,7 +268,7 @@ combined_bio_terr_simple <- combined_bio_terr %>% dplyr::select(-cumulative, - r
 bio_terr_pca <- prcomp(combined_bio_terr_simple[, 1:5], scale = TRUE)
 
 (combined_bio_pca_terr <- fviz_pca_biplot(bio_terr_pca, label ="var", 
-                                          select.var= list(name = c("pollution", "climate_change")),
+                                          select.var= list(name = c("human_population", "climate_change")),
                                           habillage = combined_bio_terr_simple$sampling2,
                                           col.var = "grey20",
                                           addEllipses = TRUE, ellipse.level = 0.95,
@@ -270,16 +279,16 @@ bio_terr_pca <- prcomp(combined_bio_terr_simple[, 1:5], scale = TRUE)
     theme_void() +
     annotate(geom = "text", x = -2.9, y = -3.5, label = "Climate change", size = 5,
              color="grey20") +
-    annotate(geom = "text", x = -6.62, y = 0.3, label = "Pollution", size = 5,
-             color="grey20") +
+  #  annotate(geom = "text", x = -6.62, y = 0.5, label = "Human density", size = 5,
+   #          color="grey20") +
     labs(title = NULL) +
     coord_cartesian(xlim = c(7, -7),
                     ylim = c(3.5, -3.5)))
 
 bio_pca_panel <- grid.arrange(combined_bio_pca_terr, combined_bio_pca_mar, ncol = 2)
-ggsave(bio_pca_panel, filename = "figures/bio_pca_Apr2021b.pdf",
+ggsave(bio_pca_panel, filename = "figures/bio_pca_June2021.pdf",
        height = 5, width = 10)
-ggsave(bio_pca_panel, filename = "figures/bio_pca_Apr2021b.png",
+ggsave(bio_pca_panel, filename = "figures/bio_pca_June2021.png",
        height = 5, width = 10)
 
 combined_predicts <- rbind(random_drivers[,c(1:6, 9, 11)], predicts_drivers[,c(1:6, 10, 9)])
@@ -297,7 +306,7 @@ combined_predicts_terr_simple <- combined_predicts %>% dplyr::select(-cumulative
 predicts_terr_pca <- prcomp(combined_predicts_terr_simple[, 1:5], scale = TRUE)
 
 (combined_predicts_pca_terr <- fviz_pca_biplot(predicts_terr_pca, label ="var", 
-                                          select.var= list(name = c("pollution", "climate_change")),
+                                          select.var= list(name = c("human_population", "climate_change")),
                                           habillage = combined_predicts_terr_simple$sampling2,
                                           col.var = "grey20",
                                           addEllipses = TRUE, ellipse.level = 0.95,
@@ -308,25 +317,25 @@ predicts_terr_pca <- prcomp(combined_predicts_terr_simple[, 1:5], scale = TRUE)
     theme_void() +
     annotate(geom = "text", x = -2.9, y = -3.5, label = "Climate change", size = 5,
              color="grey20") +
-    annotate(geom = "text", x = -6.62, y = 0.3, label = "Pollution", size = 5,
-             color="grey20") +
+   # annotate(geom = "text", x = -6.62, y = 0.5, label = "Human density", size = 5,
+    #         color="grey20") +
     labs(title = NULL) +
     coord_cartesian(xlim = c(7, -7),
                     ylim = c(3.5, -3.5)))
 
-ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceApr2021c.pdf",
+ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.pdf",
        height = 5, width = 5)
 
-ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceApr2021c.png",
+ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.png",
        height = 5, width = 5)
 
 full_gc_panel <- grid.arrange(combined_pop_pca_terr, combined_bio_pca_terr, combined_predicts_pca_terr,
                               combined_pop_pca_mar, combined_bio_pca_mar, ncol = 3)
 
-ggsave(full_gc_panel, filename = "figures/full_gc_panelApr2021b.pdf",
+ggsave(full_gc_panel, filename = "figures/full_gc_panelJune2021.pdf",
        height = 10, width = 15)
 
-ggsave(full_gc_panel, filename = "figures/full_gc_panelApr2021b.png",
+ggsave(full_gc_panel, filename = "figures/full_gc_panelJune2021.png",
        height = 10, width = 15)
 
 length(unique(random_drivers_marine$cumulative))
@@ -477,12 +486,12 @@ max(predicts_drivers_scaled$intensity)
 (driver_density_plot_mar <- ggplot(drivers_combined_r[drivers_combined_r$realm == "Marine",], 
                                    aes(x = intensity, y = fct_rev(driver), 
                                        colour = fct_rev(sampling2),
-                                       fill = fct_rev(sampling2), linetype = linetype)) +
-    geom_density_ridges(alpha = 0.6, scale = 0.95) +
+                                       fill = fct_rev(sampling2))) +
+    geom_density_ridges(alpha = 0, scale = 0.95, size = 1) +
     #change_theme() +
     theme_void() +
-    scale_fill_manual(values = c("grey50","#009392", "#3b738f")) +
-    scale_colour_manual(values = c("grey50","#009392", "#3b738f")) +
+    scale_fill_manual(values = c("grey80","#009392", "#3b738f")) +
+    scale_colour_manual(values = c("grey80","#009392", "#3b738f")) +
     facet_grid(~fct_rev(database)) +
     labs(y = NULL, x = "\nDriver intensity") +
     scale_x_continuous(limits = c(0, 1),
@@ -504,14 +513,20 @@ drivers_combined_r_pr_r$database <- "PREDICTS"
 
 drivers_combined_r <- bind_rows(drivers_combined_r, drivers_combined_r_pr_r)
 
+# reorder levels
+summary(as.factor(drivers_combined_r$database))
+drivers_combined_r$database <- factor(drivers_combined_r$database,
+                                      levels = c("LPD", "BioTIME", "PREDICTS"),
+                                      labels = c("LPD", "BioTIME", "PREDICTS"))
+
 (driver_density_plot_terr <- ggplot(drivers_combined_r[drivers_combined_r$realm == "Terrestrial",], 
                                    aes(x = intensity, y = fct_rev(driver), 
                                        colour = fct_rev(sampling2),
-                                       fill = fct_rev(sampling2), linetype = linetype)) +
-    geom_density_ridges(alpha = 0.6, scale = 0.95) +
+                                       fill = fct_rev(sampling2))) +
+    geom_density_ridges(alpha = 0, scale = 0.95, size = 1) +
     theme_void() +
-    scale_fill_manual(values = c("grey50","#a26929", "#91367e", "#7a8235")) +
-    scale_colour_manual(values = c("grey50","#a26929", "#91367e", "#7a8235")) +
+    scale_fill_manual(values = c("grey80","#a26929", "#91367e", "#7a8235")) +
+    scale_colour_manual(values = c("grey80","#a26929", "#91367e", "#7a8235")) +
     facet_grid(~database) +
     labs(y = NULL, x = "\nDriver intensity") +
     scale_x_continuous(limits = c(0, 1),
@@ -529,11 +544,11 @@ drivers_combined_r <- bind_rows(drivers_combined_r, drivers_combined_r_pr_r)
     guides(fill = F, colour = F, linetype = F))
 
 # Saving the graphs
-ggsave(driver_density_plot_terr, filename = "figures/distributions2_terr.pdf", height = 7, width = 8.3)
-ggsave(driver_density_plot_terr, filename = "figures/distributions3_terr.png", height = 7, width = 8.3)
+ggsave(driver_density_plot_terr, filename = "figures/distributionsJune_terr.pdf", height = 7, width = 8.3)
+ggsave(driver_density_plot_terr, filename = "figures/distributionsJune_terr.png", height = 7, width = 8.3)
 
-ggsave(driver_density_plot_mar, filename = "figures/distributions_mar3.pdf", height = 7, width = 6)
-ggsave(driver_density_plot_mar, filename = "figures/distributions_mar3.png", height = 7, width = 6)
+ggsave(driver_density_plot_mar, filename = "figures/distributionsJune_mar.pdf", height = 7, width = 6)
+ggsave(driver_density_plot_mar, filename = "figures/distributionsJune_mar.png", height = 7, width = 6)
 
 # Load model predictions
 # Models were run in 05-run-models
@@ -1200,7 +1215,7 @@ ecoregion_totals$value2 <- factor(c("30%", "69%", "16%", "48%", "32%", NA, NA, N
     geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(type),
                 colour = category), 
              stat = "identity", width=0.8, , position = "fill") +
-    ggtitle("\nf     Ecoregion representation\n") +
+    ggtitle("\ng     Ecoregion representation\n") +
     geom_text(
       aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
       position = "fill", fontface = "bold",
@@ -1227,8 +1242,8 @@ ecoregion_totals$value2 <- factor(c("30%", "69%", "16%", "48%", "32%", NA, NA, N
           plot.title = element_text(size = 14, hjust = 0.05, 
                                     color = "grey20", face = "bold")))
 
-ggsave(ecoregion_barplot, filename = "figures/ecoregion_barplot.pdf", 
-       height = 3, width = 6.5)
+ggsave(ecoregion_barplot, filename = "figures/ecoregion_barplotJune.pdf", 
+       height = 3, width = 8)
 
 # Combine all maps and barplot into a panel
 map_panel <- grid.arrange(pop_map_terr, pop_map_marine,
@@ -1237,6 +1252,52 @@ map_panel <- grid.arrange(pop_map_terr, pop_map_marine,
                           nrow = 3)
 
 ggsave(map_panel, filename = "figures/Figure3_April2021.pdf", device = "pdf")
+
+# Create maps of cumulative global change intensity
+library(rasterVis)
+
+cumulative <- stack("data/input/Cumulative_4_GD_imputeZero.grd")
+
+# Cumulative
+all <- subset(cumulative, 6)
+plot(all)
+
+pdf("figures/gc.pdf") 
+print(levelplot(all))
+dev.off() 
+
+library(colorspace)
+myTheme <- rasterTheme(region=sequential_hcl(10, power=2.2))
+levelplot(all, col.regions = gray(100:0/100))
+
+## Option 1: Use `at=` and `col.regions=` to set color gradient
+nlev <- 200
+my.at <- seq(from = cellStats(all, "min"),
+             to = cellStats(all, "max"),
+             length.out = nlev + 1)
+my.cols <- viridis_pal(option = "A", direction = -1, begin = 0.6, end = 1)(nlev)
+levelplot(all, margin = FALSE,
+          at = my.at,
+          col.regions = my.cols)
+
+
+# use colorbrewer which loads with the rasterVis package to generate
+# a color ramp of yellow to green
+cols <- colorRampPalette(brewer.pal(9,"Purples"))
+# create a level plot - plot
+pdf("figures/gc2.pdf") 
+print(levelplot(all, col.regions=cols, margin = FALSE))
+dev.off() 
+
+## Set up color gradient with 100 values between 0.0 and 1.0
+breaks <- seq(0, 14, by = 0.01)
+cols <- colorRampPalette(c("white", "grey90", "#ff4d88", "#990000"))(length(breaks) - 1)
+levelplot(all, at = breaks, col.regions = cols, margin = F)
+
+## Use `at` and `col.regions` arguments to set the color scheme
+pdf("figures/gc3.pdf") 
+print(levelplot(all, at = breaks, col.regions = cols, margin = F))
+dev.off() 
 
 # Fig 5 Taxonomic representation ----
 global_mus_scaled <- read.csv("~/RarityHub/data/input/global_mus_scaled.csv")
@@ -1527,6 +1588,30 @@ taxa_panel <- grid.arrange(taxa_barplot_birds,
                            nrow = 8)
 
 ggsave(taxa_panel, filename = "figures/Figure4_taxa.pdf", height = 10, width = 30)
+
+# Make donut charts of all known and predicted species
+all_species_counts <- read.csv("data/input/all_species_counts.csv")
+all_species_counts_long <- all_species_counts %>% gather(type, value, c(4, 5, 9))
+
+all_species_counts_long$type <- factor(all_species_counts_long$type,
+                                       levels = c("catalogued", "predicted", "monitored"),
+                                       labels = c("Catalogued", "Predicted", "Monitored"))
+
+all_species_counts_long$realm <- factor(all_species_counts_long$realm,
+                                        levels = c("Terrestrial", "Marine"),
+                                        labels = c("Terrestrial", "Marine"))
+# plot
+(donuts <- ggplot(all_species_counts_long, aes(x=2, y=value, fill=type)) +
+    geom_bar(position = 'fill', stat = 'identity')  +
+    facet_grid(realm ~ group) + 
+    xlim(0.5, 2.5) +
+    coord_polar(theta = 'y') + 
+    labs(x = NULL, y = NULL) +
+    theme_void() +
+    scale_fill_manual(values = c("#4c8cac", "#abdbdb", "#cf994c")))
+
+ggsave(donuts, filename = "figures/donuts.pdf", height = 5, width = 10)
+
 
 # Extra plots ----
 # Old maps
