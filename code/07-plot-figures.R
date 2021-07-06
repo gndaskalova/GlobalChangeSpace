@@ -16,7 +16,8 @@ library(ggthemes)
 library(tidyverse)
 library(stargazer)
 library(gridExtra)
-library(dggridR)
+library(devtools) #Use `install.packages('devtools')` if need be
+# install_github('r-barnes/dggridR', vignette=TRUE)
 library(raster)
 library(rgdal)
 library(ggfortify)
@@ -26,6 +27,7 @@ library(CoordinateCleaner)
 library(hrbrthemes)
 library(mapdata)
 library(cowplot)
+#devtools::install_github("azizka/speciesgeocodeR")
 library(speciesgeocodeR)
 library(readxl)
 # install_github("vqv/ggbiplot")
@@ -43,6 +45,9 @@ library(parameters)
 library(sjPlot)
 library(ggeffects)
 library(broom)
+#devtools::install_github("andrewljackson/SIBER@v2.1.6", 
+#                         build_vignettes = TRUE)
+library(SIBER)
 
 # Load population, biodiversity and driver data
 load("data/output/popbio.RData") # Living Planet and BioTIME databases
@@ -168,7 +173,7 @@ combined_pop_marine_simple <- combined_pop_marine %>% dplyr::select(-cumulative,
 
 pop_mar_pca <- prcomp(combined_pop_marine_simple[, -6], scale = TRUE)
 
-(combined_pop_pca_mar <- fviz_pca_biplot(pop_mar_pca, label ="var", 
+(combined_pop_pca_mar <- factoextra::fviz_pca_biplot(pop_mar_pca, label ="var", 
                                          select.var= list(name = c("human_population", "climate_change")),
                                          habillage = combined_pop_marine_simple$sampling2, col.var = "grey20",
                 addEllipses = TRUE, ellipse.level = 0.95,
@@ -185,15 +190,64 @@ pop_mar_pca <- prcomp(combined_pop_marine_simple[, -6], scale = TRUE)
     coord_cartesian(xlim = c(5, -5),
                     ylim = c(3, -3)))
 
-library(siar)
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_mar_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
 
-#devtools::install_github("andrewljackson/SIBER@v2.1.6", 
-#                         build_vignettes = TRUE)
-library(SIBER)
+test$group <- combined_pop_marine_simple$sampling2
+test$community <- "1"
 
-versicolor <- pop_mar_pca$x[combined_pop_marine_simple$sampling2=="Marine Random sampling",]
-virginica <- pop_mar_pca$x[combined_pop_marine_simple$sampling2=="Marine Living Planet Database",]
-maxLikOverlap((versicolor[,1], versicolor[,2], virginica[,1], virginica[,2], steps = 5))
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Marine Random sampling", "Marine Living Planet Database"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 70.6% overlap between LPD marine and global sampling
 
 combined_pop_terr_simple <- combined_pop_terr %>% dplyr::select(-cumulative, - realm) %>%
   distinct()
@@ -225,6 +279,65 @@ ggsave(pop_pca_panel, filename = "figures/pop_pca_June2021.pdf",
 
 ggsave(pop_pca_panel, filename = "figures/pop_pca_June2021.png",
        height = 5, width = 10)
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_terr_pca)
+ind
+test2 <- as.data.frame(ind$coord[,1:2])
+test2$group <- NA
+
+test2$group <- combined_pop_terr_simple$sampling2
+test2$community <- "1"
+
+colnames(test2) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test2$group <- factor(test2$group, levels = c("Terrestrial Random sampling", "Terrestrial Living Planet Database"),
+                     labels = c("2", "3"))
+test2 <- test2 %>% dplyr::select(iso1, iso2, group, community)
+colnames(test2) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test2)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 31% overlap between LPD terrestrial and global sampling
 
 bt.coords$sampling <- "BioTIME"
 bt.coords$sampling2 <- paste0(bt.coords$realm, bt.coords$sampling)
@@ -262,6 +375,62 @@ bio_mar_pca <- prcomp(combined_bio_marine_simple[, -6], scale = TRUE)
     coord_cartesian(xlim = c(-5, 5),
                     ylim = c(3, -3)))
 
+# create the siber object to calculate overlap
+ind <- get_pca_ind(bio_mar_pca)
+test3 <- as.data.frame(ind$coord[,1:2])
+test3$group <- NA
+
+test3$group <- combined_bio_marine_simple$sampling2
+test3$community <- "1"
+
+colnames(test3) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test3)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test3$group <- factor(test3$group, levels = c("Marine Random sampling", "Marine BioTIME"),
+                     labels = c("2", "3"))
+test3 <- test3 %>% dplyr::select(iso1, iso2, group, community)
+colnames(test3) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test3)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 78% overlap between BioTIME marine and global sampling
+
 combined_bio_terr_simple <- combined_bio_terr %>% dplyr::select(-cumulative, - realm) %>%
   distinct()
 
@@ -290,6 +459,62 @@ ggsave(bio_pca_panel, filename = "figures/bio_pca_June2021.pdf",
        height = 5, width = 10)
 ggsave(bio_pca_panel, filename = "figures/bio_pca_June2021.png",
        height = 5, width = 10)
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(bio_terr_pca)
+test4 <- as.data.frame(ind$coord[,1:2])
+test4$group <- NA
+
+test4$group <- combined_bio_terr_simple$sampling2
+test4$community <- "1"
+
+colnames(test4) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test4)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test4$group <- factor(test4$group, levels = c("Terrestrial Random sampling", "Terrestrial BioTIME"),
+                      labels = c("2", "3"))
+test4 <- test4 %>% dplyr::select(iso1, iso2, group, community)
+colnames(test4) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test4)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 17% overlap between BioTIME terrestrial and global sampling
 
 combined_predicts <- rbind(random_drivers[,c(1:6, 9, 11)], predicts_drivers[,c(1:6, 10, 9)])
 
@@ -328,6 +553,62 @@ ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021
 
 ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.png",
        height = 5, width = 5)
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(predicts_terr_pca)
+test5 <- as.data.frame(ind$coord[,1:2])
+test5$group <- NA
+
+test5$group <- combined_predicts_terr_simple$sampling2
+test5$community <- "1"
+
+colnames(test5) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test5)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test5$group <- factor(test5$group, levels = c("Terrestrial Random sampling", "Terrestrial PREDICTS"),
+                      labels = c("2", "3"))
+test5 <- test5 %>% dplyr::select(iso1, iso2, group, community)
+colnames(test5) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test5)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 28% overlap between BioTIME terrestrial and global sampling
 
 full_gc_panel <- grid.arrange(combined_pop_pca_terr, combined_bio_pca_terr, combined_predicts_pca_terr,
                               combined_pop_pca_mar, combined_bio_pca_mar, ncol = 3)
@@ -1605,9 +1886,9 @@ all_species_counts_long$realm <- factor(all_species_counts_long$realm,
     geom_bar(position = 'fill', stat = 'identity')  +
     facet_grid(realm ~ group) + 
     xlim(0.5, 2.5) +
-    coord_polar(theta = 'y') + 
+    #coord_polar(theta = 'y') + 
     labs(x = NULL, y = NULL) +
-    theme_void() +
+   # theme_void() +
     scale_fill_manual(values = c("#4c8cac", "#abdbdb", "#cf994c")))
 
 ggsave(donuts, filename = "figures/donuts.pdf", height = 5, width = 10)
