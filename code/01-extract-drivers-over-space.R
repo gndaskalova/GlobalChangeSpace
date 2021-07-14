@@ -15,6 +15,7 @@ library(rgdal)
 library(dggridR)
 # might need to install dggridR from GitHub if you don't have it installed already
 # library(devtools) # Use `install.packages('devtools')` if need be
+# the dggridR package could take a while to install depending on your internet
 # install_github('r-barnes/dggridR', vignette=TRUE)
 library(sp)
 library(ggalt)
@@ -24,7 +25,7 @@ library(ggthemes)
 # Population data from Living Planet Database
 mus <- read.csv("data/input/mus_1stMarch.csv")
 
-# Assemblage data from BioTIME)
+# Assemblage data from BioTIME
 load("data/input/rarefied_medians2018_meta.RData")
 load("data/input/rarefied_mediansOct2017.Rdata")
 load("data/input/rarefied_medians2018.Rdata")
@@ -38,7 +39,7 @@ load("data/input/rarefied_medians2018.Rdata")
 # The file path below needs to be updated if the file is put in another location
 predicts <- read.csv("data/input/predicts.csv")
 
-# Drivers ----
+# Drivers
 # Note the .gri file has to be in the same folder as the grd one
 cumulative <- stack("data/input/Cumulative_4_GD_imputeZero.grd")
 atc_terr <- raster("data/input/clusterRaster_Trank06.tif")
@@ -48,6 +49,10 @@ atc_mar <- raster("data/input/clusterRaster_Mrank06.tif")
 # Include only time-series with 5 or more survey points
 # Include only marine and terrestrial studies
 # Include only taxa with enough representation, e.g. >40 time-series
+# Excluding freshwater data because there isn't enough driver data available for them
+
+# The two objects bt and bt2 are to combine the BioTIME database with a few additional
+# new studies that were added later
 
 bt <- rarefied_medians %>% 
   filter(REALM != "Freshwater" & duration > 4) %>%
@@ -73,7 +78,6 @@ colnames(bt) <- c("type", "timeseries_id", "study_id",
 
 bt2 <- rarefied_medians2018 %>% 
   filter(REALM != "Freshwater" & duration > 4) %>%
-  # Excluding freshwater data because there isn't enough driver data available for them
   dplyr::select(REALM, TAXA, BIOME_MAP, duration, startYear, endYear,
                 Jtu_base, YEAR, rarefyID, STUDY_ID) %>%
   mutate(year.test = YEAR == endYear) %>%
@@ -86,6 +90,9 @@ bt2$type <- "Biodiversity"
 bt2$species <- "Community"
 
 # Standardise colunmn names and create one combined file
+# the new_rarefied_medians_sept2_meta object comes from the file
+# that loads using load("data/input/rarefied_medians2018_meta.RData")
+
 coords <- new_rarefied_medians_sept2_meta %>% 
   dplyr::select(STUDY_ID, CENT_LAT, CENT_LONG) %>% distinct()
 
@@ -125,6 +132,9 @@ popbio <- rbind(mus, bt)
 # Extract driver data -----
 coords_sp <- SpatialPoints(cbind(popbio$long, popbio$lat), proj4string = CRS("+proj=longlat"))
 
+# The driver data are extracted over equal cells of around 96km2
+# Create the spatial polygons for the extraction
+
 # Transforming coordinate system to that of the driver data
 coords_sp <- spTransform(coords_sp, CRS("+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
 coords_df <- as.data.frame(coords_sp@coords)
@@ -139,8 +149,8 @@ coords_df$left <- coords_df$long + 0.04413495
 # Creating spatial polygons
 coords_df$timeseries_id <- popbio$timeseries_id
 coords <- coords_df %>% dplyr::select(left, leftb, atop, bottom, timeseries_id)
-coords3 <- coords %>% gather(type, lon, select = c(1:2))
-coords3 <- coords3 %>% gather(direction, lat, select = c(1:2))
+coords3 <- coords %>% gather(type, lon, 1:2)
+coords3 <- coords3 %>% gather(direction, lat, 1:2)
 coords3 <- coords3 %>% arrange(timeseries_id)
 
 coords4 <- coords3 %>% group_by(timeseries_id) %>% filter(row_number() == 1)

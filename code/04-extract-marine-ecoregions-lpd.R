@@ -16,7 +16,11 @@ library(raster)
 
 # Change working directory temporarily to be set to where the marine ecoregion
 # shape files are
-setwd("~/GlobalChangeSpace/data/input/MEOW-TNC")
+# Note that if you are changing the working directory on a Windows computer
+# the formatting of the file paths differ, e.g. no "~"
+# You can also click on Session/Working directory/Change directory and navigate
+# to the folder where the ecoregion data are saved
+setwd("data/input/MEOW-TNC")
 ogrInfo(".", "meow_ecos")
 
 regions <- readOGR(".", "meow_ecos")
@@ -48,6 +52,10 @@ getRegionalInfo  <- function(lat1, long1){
 
 # Change back the working directory to the project
 setwd("~/GlobalChangeSpace")
+# Note that if you have saved the repository for this project somewhere else
+# the file path would need to be updated accordingly
+# You can also click on Session/Working directory/Change directory and navigate
+# to the folder with the repo
 
 # For just one point
 # getRegionalInfo(50.00806, -127.4342)

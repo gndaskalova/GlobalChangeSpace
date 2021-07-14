@@ -18,6 +18,10 @@ library(ncdf4)
 
 # Changing the working directory temporarily because for me the file is in Downloads
 setwd("~/Downloads")
+# Note that if you are changing the working directory on a Windows computer
+# the formatting of the file paths differ, e.g. no "~"
+# You can also click on Session/Working directory/Change directory and navigate
+# to the folder where the temperature data are saved
 
 # Load the CRU TS datasets into R 
 tmp <- brick("cru_ts4.01.1901.2016.tmp.dat.nc", varname="tmp", package = "raster") # Mean monthly temperature

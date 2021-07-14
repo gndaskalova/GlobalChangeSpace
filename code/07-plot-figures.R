@@ -51,7 +51,15 @@ library(SIBER)
 
 # Load population, biodiversity and driver data
 load("data/output/popbio.RData") # Living Planet and BioTIME databases
-predicts <- read.csv("~/Desktop/PhD Dreams/predicts.csv") # PREDICTS database
+
+# Space for time community data from PREDICTS
+# Note this file is not on GitHub because of its size
+# The file can be downloaded here 
+# https://data.nhm.ac.uk/dataset/the-2016-release-of-the-predicts-database
+# Choose Database in zipped CSV format
+# The file is originally called database.csv, I renamed it to predicts.csv
+# The file path below needs to be updated if the file is put in another location
+predicts <- read.csv("data/input/predicts.csv")
 load("data/output/predicts_drivers.RData")
 predicts_drivers <- distinct(predicts_drivers)
 predicts_drivers$sampling <- "PREDICTS"
@@ -144,7 +152,7 @@ predicts.coords <- predicts %>%
 
 # Create column with marine versus terrestrial
 names(random_drivers)[7:8] <- c("decimallongitude", "decimallatitude")
-shape <- readOGR(dsn = "~/Downloads/ne_110m_land", layer = "ne_110m_land")
+shape <- readOGR(dsn = "data/input/ne_110m_land", layer = "ne_110m_land")
 random_drivers_marine <- random_drivers %>% cc_sea(ref = shape)
 random_drivers_marine$realm <- "Marine"
 random_drivers_terr <- anti_join(random_drivers, random_drivers_marine)
@@ -764,6 +772,10 @@ predicts_drivers_scaled <- predicts_drivers %>% filter(driver == "human_use")
 min(predicts_drivers_scaled$intensity)
 max(predicts_drivers_scaled$intensity)
 
+# Calculating Hellinger distance
+hellinger(x1, x2, nbreaks = 100, minx = min(c(x1, x2)),
+          maxx = max(c(x1, x2)))
+
 (driver_density_plot_mar <- ggplot(drivers_combined_r[drivers_combined_r$realm == "Marine",], 
                                    aes(x = intensity, y = fct_rev(driver), 
                                        colour = fct_rev(sampling2),
@@ -886,7 +898,6 @@ bt <- popbio %>% filter(type == "Biodiversity")
 bt$start_comparison <- bt$start_year - bt$duration
 bt$end_comparison <- bt$start_year - 1
 
-hist(bt$start_comparison)
 bt_simpler <- bt %>% dplyr::select(timeseries_id, start_year, end_year, start_comparison,
                                    end_comparison, duration)
 colnames(bt_simpler)[1] <- "rarefyID"
@@ -958,7 +969,6 @@ lpd <- popbio %>% filter(type == "Population")
 lpd$start_comparison <- lpd$start_year - lpd$duration
 lpd$end_comparison <- lpd$start_year - 1
 
-hist(lpd$start_comparison)
 lpd_simpler <- lpd %>% dplyr::select(timeseries_id, start_year, end_year, start_comparison,
                                      end_comparison, duration)
 
@@ -1081,7 +1091,7 @@ summary(lpd_temp_models_spread_mar$test)
 # 64% of LPD marine time series experienced more warming during time series than before
 
 # Marine BioTIME
-temp_bt_mar <- left_join(sst_sites_long, bt_simpler, by = "timeseries_id")
+temp_bt_mar <- left_join(sst_sites_long, bt_simpler, by = "rarefyID")
 
 str(temp_bt_mar)
 
@@ -1093,14 +1103,14 @@ temp_bt_mar3 <- temp_bt_mar3 %>% mutate(timing = case_when(year < end_comparison
 
 temp_bt_mar3b <- na.omit(temp_bt_mar3)
 
-temp_models_bt_mar <- temp_bt_mar3b %>% group_by(timeseries_id, timing) %>%
+temp_models_bt_mar <- temp_bt_mar3b %>% group_by(rarefyID, timing) %>%
   do(broom::tidy(lm(mean_temp ~ year, data = .)))
 
 temp_models_bt_mar <- temp_models_bt_mar %>%
   spread(term, estimate)
 
 bt_temp_models_spread_mar <- temp_models_bt_mar %>% drop_na(year) %>%
-  dplyr::select(timeseries_id, timing, year) %>%
+  dplyr::select(rarefyID, timing, year) %>%
   spread(timing, year)
 
 (bt_climate2 <- ggplot(bt_temp_models_spread_mar, aes(y = `Before monitoring`, x = `During monitoring`)) +
@@ -1145,6 +1155,82 @@ warming_terr_mar_panel <- grid.arrange(lpd_climate1, bt_climate1, lpd_climate2, 
 
 ggsave(warming_terr_mar_panel, filename = "figures/warming_panel3.png", height = 6, width = 19)
 ggsave(warming_terr_mar_panel, filename = "figures/warming_panel3.pdf", height = 6, width = 19)
+
+# Model testing climate warming before and during time series moniitoring
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+# Set priors
+prior <- c(set_prior(prior = 'normal(0,6)', class='Intercept', coef=''))	
+
+# turn data into long form
+bt_temp_models_long_mar <- bt_temp_models_spread_mar %>%
+  gather(period, estimate, 2:3)
+
+bt_mar_temp_m <- brm(bf(estimate ~ period), 
+                     data = bt_temp_models_long_mar, 
+                     prior = prior, iter = 6000,
+                     warmup = 2000,
+                     inits = '0',
+                     control = list(adapt_delta = 0.80),
+                     cores = 2, chains = 2)
+
+# Check model and save output
+summary(bt_mar_temp_m)
+plot(bt_mar_temp_m)
+save(bt_mar_temp_m, file = "data/output/bt_mar_temp_m.RData")
+
+# turn data into long form
+lpd_temp_models_long_mar <- lpd_temp_models_spread_mar %>%
+  gather(period, estimate, 2:3)
+
+lpd_mar_temp_m <- brm(bf(estimate ~ period), 
+                     data = lpd_temp_models_long_mar, 
+                     prior = prior, iter = 6000,
+                     warmup = 2000,
+                     inits = '0',
+                     control = list(adapt_delta = 0.80),
+                     cores = 2, chains = 2)
+
+# Check model and save output
+summary(lpd_mar_temp_m)
+plot(lpd_mar_temp_m)
+save(lpd_mar_temp_m, file = "data/output/lpd_mar_temp_m.RData")
+
+# turn data into long form
+bt_temp_models_long_terr <- temp_models_spread %>%
+  gather(period, estimate, 2:3)
+
+bt_terr_temp_m <- brm(bf(estimate ~ period), 
+                     data = bt_temp_models_long_terr, 
+                     prior = prior, iter = 6000,
+                     warmup = 2000,
+                     inits = '0',
+                     control = list(adapt_delta = 0.80),
+                     cores = 2, chains = 2)
+
+# Check model and save output
+summary(bt_terr_temp_m)
+plot(bt_terr_temp_m)
+save(bt_terr_temp_m, file = "data/output/bt_terr_temp_m.RData")
+
+# turn data into long form
+lpd_temp_models_long_terr <- lpd_temp_models_spread %>%
+  gather(period, estimate, 2:3)
+
+lpd_terr_temp_m <- brm(bf(estimate ~ period), 
+                      data = lpd_temp_models_long_terr, 
+                      prior = prior, iter = 6000,
+                      warmup = 2000,
+                      inits = '0',
+                      control = list(adapt_delta = 0.80),
+                      cores = 2, chains = 2)
+
+# Check model and save output
+summary(lpd_terr_temp_m)
+plot(lpd_terr_temp_m)
+save(lpd_terr_temp_m, file = "data/output/lpd_terr_temp_m.RData")
 
 # Rate of forest cover change
 load("data/input/luh_polys_longUpdated.RData")

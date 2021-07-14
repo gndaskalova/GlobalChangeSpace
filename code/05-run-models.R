@@ -25,7 +25,14 @@ library(ggeffects)
 
 # Load population, biodiversity and driver data
 load("data/output/popbio.RData") # Living Planet and BioTIME databases
-predicts <- read.csv("~/Desktop/PhD Dreams/predicts.csv") # PREDICTS database
+# Space for time community data from PREDICTS
+# Note this file is not on GitHub because of its size
+# The file can be downloaded here 
+# https://data.nhm.ac.uk/dataset/the-2016-release-of-the-predicts-database
+# Choose Database in zipped CSV format
+# The file is originally called database.csv, I renamed it to predicts.csv
+# The file path below needs to be updated if the file is put in another location
+predicts <- read.csv("data/input/predicts.csv")
 load("data/output/predicts_drivers.RData")
 predicts_drivers <- distinct(predicts_drivers)
 predicts_drivers$sampling <- "PREDICTS"
