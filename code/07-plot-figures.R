@@ -618,6 +618,88 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
 
 # 28% overlap between BioTIME terrestrial and global sampling
 
+predicts_terr_pca <- prcomp(combined_predicts_terr_simple[, 1:5], scale = TRUE)
+
+(combined_predicts_pca_terr <- fviz_pca_biplot(predicts_terr_pca, label ="var", 
+                                               select.var= list(name = c("human_population", "climate_change")),
+                                               habillage = combined_predicts_terr_simple$sampling2,
+                                               col.var = "grey20",
+                                               addEllipses = TRUE, ellipse.level = 0.95,
+                                               repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("grey80", "#7d8141")) +
+    scale_fill_manual(values = c("grey80", "#7d8141")) +
+    guides(colour = F, shape = F, fill = F) +
+    theme_void() +
+    annotate(geom = "text", x = -2.9, y = -3.5, label = "Climate change", size = 5,
+             color="grey20") +
+    # annotate(geom = "text", x = -6.62, y = 0.5, label = "Human density", size = 5,
+    #         color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(7, -7),
+                    ylim = c(3.5, -3.5)))
+
+ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.pdf",
+       height = 5, width = 5)
+
+ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.png",
+       height = 5, width = 5)
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(predicts_terr_pca)
+test5 <- as.data.frame(ind$coord[,1:2])
+test5$group <- NA
+
+test5$group <- combined_predicts_terr_simple$sampling2
+test5$community <- "1"
+
+colnames(test5) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test5)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test5$group <- factor(test5$group, levels = c("Terrestrial Random sampling", "Terrestrial PREDICTS"),
+                      labels = c("2", "3"))
+test5 <- test5 %>% dplyr::select(iso1, iso2, group, community)
+colnames(test5) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test5)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 28% overlap between BioTIME terrestrial and global sampling
+
 full_gc_panel <- grid.arrange(combined_pop_pca_terr, combined_bio_pca_terr, combined_predicts_pca_terr,
                               combined_pop_pca_mar, combined_bio_pca_mar, ncol = 3)
 
@@ -1980,95 +2062,516 @@ all_species_counts_long$realm <- factor(all_species_counts_long$realm,
 ggsave(donuts, filename = "figures/donuts.pdf", height = 5, width = 10)
 
 
-# Extra plots ----
-# Old maps
-(pop_map <- ggplot() +
-    geom_map(map = world, data = world,
-             aes(long, lat, map_id = region), 
-             color = "gray30", fill = NA, size = 1) +
-    geom_map(map = world, data = world,
-             aes(long, lat, map_id = region), 
-             color = "white", fill = "white", size = 0.3) +
-    coord_proj("+proj=eck4") +
-    theme_map() +
-    geom_point(data = lpd.coords, 
-               aes(x = long, y = lat, colour = realm),
-               alpha = 0.6, size = 1.9) +
-    scale_y_continuous(limits = c(-80, 80)) +
-    # scale_colour_viridis() +
-    scale_colour_manual(values = c("#b6af3c", "#72886e")) +
-    guides(colour = FALSE, fill = FALSE, size = FALSE) +
-    theme(legend.position = "bottom",
-          legend.title = element_text(size = 16),
-          legend.text = element_text(size = 10),
-          legend.justification = "top"))
+# SI plots ----
 
-(bio_map <- ggplot() +
-    geom_map(map = world, data = world,
-             aes(long, lat, map_id = region), 
-             color = "gray30", fill = NA, size = 1) +
-    geom_map(map = world, data = world,
-             aes(long, lat, map_id = region), 
-             color = "white", fill = "white", size = 0.3) +
-    coord_proj("+proj=eck4") +
-    theme_map() +
-    geom_point(data = bt.coords,
-               aes(x = long, y = lat, colour = realm),
-               alpha = 0.6, size = 1.9) +    
-    scale_colour_manual(values = c("#4d5f72", "#56b3b1")) +
-    scale_y_continuous(limits = c(-80, 80)) +
-    guides(colour = FALSE, fill = FALSE, size = FALSE) +
-    theme(legend.position = "bottom",
-          legend.title = element_text(size = 16),
-          legend.text = element_text(size = 10),
-          legend.justification = "top"))
+# *** Global change space per taxa ----
+random_drivers$taxa <- "NA"
+combined_pop_taxa <- rbind(random_drivers[, c(1:6, 9, 11, 12)], lpd.coords[,c(15:20, 4, 23, 6)])
+combined_pop_taxa <- na.omit(combined_pop_taxa)
+combined_pop_birds <- combined_pop_taxa %>% filter(taxa == "Aves" | taxa == "NA")
+combined_pop_mammals <- combined_pop_taxa %>% filter(taxa == "Mammalia" | taxa == "NA")
+combined_pop_fish <- combined_pop_taxa %>% filter(taxa == "Actinopterygii" | taxa == "NA")
+combined_pop_sharks <- combined_pop_taxa %>% filter(taxa == "Elasmobranchii" | taxa == "NA")
+combined_pop_reptiles <- combined_pop_taxa %>% filter(taxa == "Reptilia" | taxa == "NA")
+combined_pop_amphibians <- combined_pop_taxa %>% filter(taxa == "Amphibia" | taxa == "NA")
 
-(predicts_map <- ggplot() +
-    geom_map(map = world, data = world,
-             aes(long, lat, map_id = region), 
-             color = "gray30", fill = NA, size = 1) +
-    geom_map(map = world, data = world,
-             aes(long, lat, map_id = region), 
-             color = "white", fill = "white", size = 0.3) +
-    coord_proj("+proj=eck4") +
-    theme_map() +
-    geom_point(data = predicts.coords,
-               aes(x = Longitude, y = Latitude),
-               alpha = 0.6, size = 1.9, colour = "#eb5a65") +
-    scale_y_continuous(limits = c(-80, 80)) +
-    guides(colour = FALSE, fill = FALSE) +
-    theme(legend.position = "bottom",
-          legend.title = element_text(size = 16),
-          legend.text = element_text(size = 10),
-          legend.justification = "top"))
+combined_pop_birds_simple <- combined_pop_birds %>% dplyr::select(-cumulative,  -realm, -sampling2) %>%
+  distinct()
 
+pop_birds_pca <- prcomp(combined_pop_birds_simple[, -6], scale = TRUE)
 
-(bio_map <- ggplot(bt.coords, aes(x = long, y = lat)) + 
-    geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "grey", alpha = 0.3) +
-    geom_bin2d(bins = 100) +
-    # geom_hex(bins = 100) +
+(combined_pop_pca_birds <- factoextra::fviz_pca_biplot(pop_birds_pca, 
+                                                       label ="var", 
+                                                    select.var= list(name = c("human_population", "climate_change")),
+                                                     habillage = combined_pop_birds_simple$taxa, 
+                                                  col.var = "grey20",
+                                                     addEllipses = TRUE, ellipse.level = 0.95,
+                                                     repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("#ffaa5c", "grey80")) +
+    scale_fill_manual(values = c("#ffaa5c", "grey80")) +
+    guides(colour = F, shape = F, fill = F) +
     theme_void() +
-    coord_proj("+proj=eck4") +
-    ylim(-80, 80) +
-    scale_fill_viridis(option = "magma",
-                       direction = -1, end = 0.3, begin = 0.8,
-                        name = "Number of time series", 
-                       # breaks = c(500, 1100, 1600),
-                        guide = guide_legend(keyheight = unit(2.5, units = "mm"),
-                                             keywidth = unit(10, units = "mm"), 
-                                             label.position = "bottom", 
-                                             title.position = 'top', nrow=1))  +
-    ggtitle("BioTIME Database") +
-    theme(legend.position = c(0.14, 0.07),
-          legend.title=element_text(color = "black", size = 10),
-          text = element_text(color = "#22211d"),
-          plot.title = element_text(size = 12, hjust = 0.5, 
-                                    color = "grey20", 
-                                    margin = margin(b = 0.2, 
-                                                    t = 0.4, l = 2, 
-                                                    unit = "cm"))))
-ggsave(bio_map, filename = "figures/biotime_map_2021.pdf")
+    annotate(geom = "text", x = -1.5, y = -3.4, label = "Climate change", size = 5,
+             color="grey20") +
+    #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+    #          color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(5, -5),
+                    ylim = c(4, -4)))
 
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_birds_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
+
+test$group <- combined_pop_birds_simple$taxa
+test$community <- "1"
+
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Aves", "NA"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 40.3% overlap between LPD birds and global sampling
+
+combined_pop_mammals_simple <- combined_pop_mammals %>% dplyr::select(-cumulative,  -realm, -sampling2) %>%
+  distinct()
+
+pop_mammals_pca <- prcomp(combined_pop_mammals_simple[, -6], scale = TRUE)
+
+(combined_pop_pca_mammals <- factoextra::fviz_pca_biplot(pop_mammals_pca, 
+                                                       label ="var", 
+                                                       select.var= list(name = c("human_population", "climate_change")),
+                                                       habillage = combined_pop_mammals_simple$taxa, 
+                                                       col.var = "grey20",
+                                                       addEllipses = TRUE, ellipse.level = 0.95,
+                                                       repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("#da727e", "grey80")) +
+    scale_fill_manual(values = c("#da727e", "grey80")) +
+    guides(colour = F, shape = F, fill = F) +
+    theme_void() +
+    annotate(geom = "text", x = -1.5, y = -3.4, label = "Climate change", size = 5,
+             color="grey20") +
+    #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+    #          color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(6.4, -6.4),
+                    ylim = c(4, -4)))
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_mammals_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
+
+test$group <- combined_pop_mammals_simple$taxa
+test$community <- "1"
+
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Mammalia", "NA"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 41.1% overlap between LPD mammals and global sampling
+
+combined_pop_fish_simple <- combined_pop_fish %>% dplyr::select(-cumulative,  -realm, -sampling2) %>%
+  distinct()
+
+pop_fish_pca <- prcomp(combined_pop_fish_simple[, -6], scale = TRUE)
+
+(combined_pop_pca_fish <- factoextra::fviz_pca_biplot(pop_fish_pca, 
+                                                         label ="var", 
+                                                         select.var= list(name = c("human_population", "climate_change")),
+                                                         habillage = combined_pop_fish_simple$taxa, 
+                                                         col.var = "grey20",
+                                                         addEllipses = TRUE, ellipse.level = 0.95,
+                                                         repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("#455c7b", "grey80")) +
+    scale_fill_manual(values = c("#455c7b", "grey80")) +
+    guides(colour = F, shape = F, fill = F) +
+    theme_void() +
+    annotate(geom = "text", x = -1.5, y = -3.4, label = "Climate change", size = 5,
+             color="grey20") +
+    #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+    #          color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(6.4, -6.4),
+                    ylim = c(4, -4)))
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_fish_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
+
+test$group <- combined_pop_fish_simple$taxa
+test$community <- "1"
+
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Actinopterygii", "NA"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 62.2% overlap between LPD fish and global sampling
+
+combined_pop_sharks_simple <- combined_pop_sharks %>% dplyr::select(-cumulative,  -realm, -sampling2) %>%
+  distinct()
+
+pop_sharks_pca <- prcomp(combined_pop_sharks_simple[, -6], scale = TRUE)
+
+(combined_pop_pca_sharks <- factoextra::fviz_pca_biplot(pop_sharks_pca, 
+                                                      label ="var", 
+                                                      select.var= list(name = c("human_population", "climate_change")),
+                                                      habillage = combined_pop_sharks_simple$taxa, 
+                                                      col.var = "grey20",
+                                                      addEllipses = TRUE, ellipse.level = 0.95,
+                                                      repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("#5c5c5c", "grey80")) +
+    scale_fill_manual(values = c("#5c5c5c", "grey80")) +
+    guides(colour = F, shape = F, fill = F) +
+    theme_void() +
+    annotate(geom = "text", x = -1.5, y = -3.4, label = "Climate change", size = 5,
+             color="grey20") +
+    #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+    #          color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(6.4, -6.4),
+                    ylim = c(4, -4)))
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_sharks_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
+
+test$group <- combined_pop_sharks_simple$taxa
+test$community <- "1"
+
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Elasmobranchii", "NA"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 51.2% overlap between LPD sharks and global sampling
+
+combined_pop_reptiles_simple <- combined_pop_reptiles %>% dplyr::select(-cumulative,  -realm, -sampling2) %>%
+  distinct()
+
+pop_reptiles_pca <- prcomp(combined_pop_reptiles_simple[, -6], scale = TRUE)
+
+(combined_pop_pca_reptiles <- factoextra::fviz_pca_biplot(pop_reptiles_pca, 
+                                                        label ="var", 
+                                                        select.var= list(name = c("human_population", "climate_change")),
+                                                        habillage = fct_rev(combined_pop_reptiles_simple$taxa), 
+                                                        col.var = "grey20",
+                                                        addEllipses = TRUE, ellipse.level = 0.95,
+                                                        repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("#ac6c82", "grey80")) +
+    scale_fill_manual(values = c("#ac6c82", "grey80")) +
+    guides(colour = F, shape = F, fill = F) +
+    theme_void() +
+    annotate(geom = "text", x = -1.5, y = -3.4, label = "Climate change", size = 5,
+             color="grey20") +
+    #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+    #          color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(6.4, -6.4),
+                    ylim = c(4, -4)))
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_reptiles_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
+
+test$group <- combined_pop_reptiles_simple$taxa
+test$community <- "1"
+
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Amphibia", "NA"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 32.1% overlap between LPD reptiles and global sampling
+
+combined_pop_amphibians_simple <- combined_pop_amphibians %>% dplyr::select(-cumulative,  -realm, -sampling2) %>%
+  distinct()
+
+pop_amphibians_pca <- prcomp(combined_pop_amphibians_simple[, -6], scale = TRUE)
+
+(combined_pop_pca_amphibians <- factoextra::fviz_pca_biplot(pop_amphibians_pca, 
+                                                          label ="var", 
+                                                          select.var= list(name = c("human_population", "climate_change")),
+                                                          habillage = combined_pop_amphibians_simple$taxa, 
+                                                          col.var = "grey20",
+                                                          addEllipses = TRUE, ellipse.level = 0.95,
+                                                          repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
+    scale_colour_manual(values = c("#ac6c82", "grey80")) +
+    scale_fill_manual(values = c("#ac6c82", "grey80")) +
+    guides(colour = F, shape = F, fill = F) +
+    theme_void() +
+    annotate(geom = "text", x = -1.5, y = -3.4, label = "Climate change", size = 5,
+             color="grey20") +
+    #  annotate(geom = "text", x = -4.5, y = 0.2, label = "Human density", size = 5,
+    #          color="grey20") +
+    labs(title = NULL) +
+    coord_cartesian(xlim = c(6.4, -6.4),
+                    ylim = c(4, -4)))
+
+# create the siber object to calculate overlap
+ind <- get_pca_ind(pop_amphibians_pca)
+ind
+test <- as.data.frame(ind$coord[,1:2])
+test$group <- NA
+
+test$group <- combined_pop_amphibians_simple$taxa
+test$community <- "1"
+
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+siber.example <- createSiberObject(test)
+
+group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
+
+par(mfrow=c(1,1))
+plotSiberObject(siber.example,
+                ax.pad = 2, 
+                hulls = F, community.hulls.args, 
+                ellipses = T, group.ellipses.args,
+                group.hulls = F, group.hull.args,
+                bty = "L",
+                iso.order = c(1,2))
+
+# In this example, I will calculate the overlap between ellipses for groups 2
+# and 3 in community 1 (i.e. the green and yellow open circles of data).
+
+# The first ellipse is referenced using a character string representation where 
+# in "x.y", "x" is the community, and "y" is the group within that community.
+# So in this example: community 1, group 2
+test$group <- factor(test$group, levels = c("Amphibia", "NA"),
+                     labels = c("2", "3"))
+test <- test %>% dplyr::select(iso1, iso2, group, community)
+colnames(test) <- c("iso1", "iso2", "group", "community")
+
+ellipse1 <- "1.2"
+
+# Ellipse two is similarly defined: community 1, group3
+ellipse2 <- "1.3"
+
+siber.example <- createSiberObject(test)
+
+# The overlap of the maximum likelihood fitted standard ellipses are 
+# estimated using
+sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                             p.interval = NULL, n = 100)
+
+# the overlap betweeen the corresponding 95% prediction ellipses is given by:
+ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
+                                   p.interval = 0.95, n = 100)
+
+# so in this case, the overlap as a proportion of the non-overlapping area of 
+# the two ellipses, would be
+prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
+                                          ellipse95.overlap[1] -
+                                          ellipse95.overlap[3])
+
+# 16.1% overlap between LPD amphibians and global sampling
 
 # Barplot of number of studies
 study_totals <- data.frame(c("LPD (terrestrial)", "LPD (marine)",
