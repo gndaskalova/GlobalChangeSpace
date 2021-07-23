@@ -34,7 +34,8 @@ All R scripts can be found in the code folder. They are sorted based on order of
 - 06-calculate-predictions.R
 # To calculate model predictions
 
-- 07-plot-figures.R # To create figures
+- 07-plot-figures.R 
+# To create figures
 ```
 
 ### Data
