@@ -3818,3 +3818,17 @@ ggsave(predicts_timing, filename = "figures/predicts_timing.pdf", device = cairo
 ggsave(predicts_timing, filename = "figures/predicts_timing.png", dpi = 300,
        bg = "transparent",
        height = 7, width = 7.3)
+
+# Geography numbers
+summary(as.factor(predicts$UN_subregion))
+
+# Europe
+77627+189435+222748+287024
+# 776834
+776834/3250404
+# 23.8% of PREDICTS records from Europe
+
+# South America
+365021/3250404
+# 11.2%
+
