@@ -65,3 +65,7 @@ packrat/src/
 data/input/predicts.csv
 
 doc/*
+
+/.gitignore
+
+figures/*
