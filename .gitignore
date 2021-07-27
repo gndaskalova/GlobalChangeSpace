@@ -63,3 +63,5 @@ packrat/src/
 
 # big file
 data/input/predicts.csv
+
+doc/*
