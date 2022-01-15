@@ -1605,16 +1605,16 @@ length(unique(counts$homepolygon))
 # 0.2987313 for LPD terrestrial
 
 # LPD marine see separate script marine-ecoregion-lpd-extraction.R
-# 160 marine ecoregions
-160/232
-# 0.6896552 for LPD marine
+# 188 marine ecoregions
+188/232
+# 0.8103448 for LPD marine
 
 # Change back the working directory
 setwd("~/GlobalChangeSpace")
 
 ecoregion_totals <- data.frame(c("LPD (terrestrial)", "LPD (marine)",
                              "BioTIME (terrestrial)", "BioTIME (marine)",
-                             "PREDICTS (terrestrial"), c(0.2987313, 0.6896552,
+                             "PREDICTS (terrestrial"), c(0.2987313, 0.8103448,
                                                          0.1626298, 0.4827586,
                                                          0.3241061))
 
@@ -3832,3 +3832,25 @@ summary(as.factor(predicts$UN_subregion))
 365021/3250404
 # 11.2%
 
+(lpd_duration2 <- ggplot(lpd.coords, aes(x = duration)) +
+    geom_histogram(aes(fill = taxa), bins = 30,
+                   alpha = 0.8, colour = "grey30") +
+    #change_theme() +
+    facet_wrap(~taxa, scales = "free_y") +
+   # geom_vline(xintercept = mean(lpd.coords$duration), linetype = "solid",
+    #           size = 1) +
+    theme(panel.background = element_rect(fill = "transparent", colour = NA), 
+          plot.background = element_rect(fill = "transparent", colour = NA)) +
+    labs(x = "Duration (years)", y = "Number of time series") +
+    #scale_x_continuous(limits = c(0, 100)) +
+    scale_fill_manual(values = c("#7b8cb8", "#fc9b59", "#fed26b",
+                                 "#87bec8", "#995043", "#918a81")) +
+    scale_colour_manual(values = c("#7b8cb8", "#fc9b59", "#fed26b",
+                                 "#87bec8", "#995043", "#918a81")))
+
+ggsave(lpd_duration2, filename = "figures/lpd_duration2.png",
+       bg = "transparent",
+       height = 7, width = 7)
+
+ggsave(lpd_duration, filename = "figures/lpd_duration.pdf", device = cairo_pdf,
+       height = 7, width = 7)

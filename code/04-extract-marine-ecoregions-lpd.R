@@ -12,7 +12,8 @@
 # section of the script 07-plot-figures.R
 
 library(rgdal)
-library(raster) 
+library(raster)
+library(tidyverse)
 
 # Change working directory temporarily to be set to where the marine ecoregion
 # shape files are
@@ -64,15 +65,42 @@ setwd("~/GlobalChangeSpace")
 
 # Load data
 # Import sample site information
-load("data/output/popbio.RData") # Living Planet and BioTIME databases, taking just the 
-# LPD marinecoordinates
+# For the Living Planet Database
+# Import sample site information
+mus <- read.csv("data/input/LPR2020data_public.csv")
+mus$type <- "Population"
 
-mus.coords.marine <- popbio %>%
-  filter(type == "Population" & realm == "Marine") %>%
+# Turn data into long form
+mus <- mus %>% gather(year, pop, 30:98)
+mus$year <- parse_number(as.character(mus$year))
+mus$pop <- as.factor(mus$pop)
+levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
+mus <- mus %>% drop_na(pop)
+mus$pop <- parse_number(as.character(mus$pop))
+
+# Calculate duration per time series
+mus <- mus %>% group_by(ID) %>% 
+  mutate(duration = max(year) - min(year),
+         startYear = min(year),
+         endYear = max(year)) %>%
+  filter(System != "Freshwater")
+
+mus <- mus %>% gather(realm_type, biome, c(22, 25))
+
+mus <- mus %>%
+  dplyr::select(type, ID, System, biome, Class, duration, startYear,
+                endYear, Longitude, Latitude)
+
+colnames(mus) <- c("type", "timeseries_id",
+                   "realm", "biome", "taxa", "duration", "start_year",
+                   "end_year", "long", "lat")
+
+samples_lpd <- mus %>%
+  filter(realm == "Marine") %>%
   dplyr::select(timeseries_id, long, lat) %>%
-  distinct()
+  distinct() %>% ungroup()
 
-mus.coords.marine.simple <- mus.coords.marine %>%
+mus.coords.marine.simple <- samples_lpd %>%
   dplyr::select(timeseries_id, lat, long) %>% distinct()
 
 colnames(mus.coords.marine.simple)[c(2,3)] <- c("lat1", "long1")
@@ -80,6 +108,6 @@ colnames(mus.coords.marine.simple)[c(2,3)] <- c("lat1", "long1")
 marine_ecoregions_lpd <- mus.coords.marine.simple %>% group_by(timeseries_id) %>% do(getRegionalInfo(.$lat1, .$long1))
 length(unique(marine_ecoregions_lpd$ECOREGION))
 
-# 160 ecoregions
+# 188 ecoregions
 # Just the number is needed to test % representation
 # There are data from 160 ecoregions for the marine Living Planet Database

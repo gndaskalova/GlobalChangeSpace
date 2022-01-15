@@ -16,25 +16,17 @@ library(ncdf4)
 
 # Please look for the file called cru_ts4.01.1901.2016.tmp.dat.nc
 
-# Changing the working directory temporarily because for me the file is in Downloads
-setwd("~/Downloads")
-# Note that if you are changing the working directory on a Windows computer
-# the formatting of the file paths differ, e.g. no "~"
 # You can also click on Session/Working directory/Change directory and navigate
 # to the folder where the temperature data are saved
 
 # Load the CRU TS datasets into R 
-tmp <- brick("cru_ts4.01.1901.2016.tmp.dat.nc", varname="tmp", package = "raster") # Mean monthly temperature
-
-# Change back directory to the project
-setwd("~/GlobalChangeSpace")
+tmp <- brick("data/input/cru_ts4.01.1901.2016.tmp.dat.nc", varname="tmp", package = "raster") # Mean monthly temperature
 
 # Import sample site information
-load("data/input/cell_coords_newsept.Rdata")
+load("data/input/bt_grid_coord.Rdata")
 
-samples <- rarefyID_cell_centre %>%
-  left_join(realm_meta) %>%
-  filter(realm == "Terrestrial") %>%
+samples <- bt_grid_coord %>%
+  filter(REALM == "Terrestrial") %>%
   dplyr::select(rarefyID, rarefyID_x, rarefyID_y) %>%
   distinct()
 
@@ -54,7 +46,7 @@ names(tmp.sites) <- paste(rep(years, each=12), rep(month, times=116), sep="_")
 names(tmp.sites)[1393] <- "rarefyID"
 
 # Save the extracted climate data to a .csv file
-save(tmp.sites, file = "data/output/CRU_BioTIME.RData")
+save(tmp.sites, file = "data/output/CRU_BioTIME2022.RData")
 
 # Turn into long format
 tmp.sites.long <- tmp.sites %>% gather(year, temperature, c(1:1392))
@@ -65,17 +57,42 @@ tmp.sites.long <- tmp.sites.long %>% dplyr::group_by(rarefyID, year) %>%
   dplyr::summarise(mean_temp = mean(temperature))
 tmp_sites_long <- tmp.sites.long
 
-save(tmp_sites_long, file = "data/output/CRU_BioTIME_mean.RData")
+save(tmp_sites_long, file = "data/output/CRU_BioTIME_mean2022.RData")
 
 # For the Living Planet Database
 # Import sample site information
-load("data/output/popbio.RData") # Living Planet and BioTIME databases, but loaded here 
-# just to get the LPD coordinates
+mus <- read.csv("data/input/LPR2020data_public.csv")
+mus$type <- "Population"
 
-samples_lpd <- popbio %>%
-  filter(type == "Population" & realm == "Terrestrial") %>%
+# Turn data into long form
+mus <- mus %>% gather(year, pop, 30:98)
+mus$year <- parse_number(as.character(mus$year))
+mus$pop <- as.factor(mus$pop)
+levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
+mus <- mus %>% drop_na(pop)
+mus$pop <- parse_number(as.character(mus$pop))
+
+# Calculate duration per time series
+mus <- mus %>% group_by(ID) %>% 
+  mutate(duration = max(year) - min(year),
+         startYear = min(year),
+         endYear = max(year)) %>%
+  filter(System != "Freshwater")
+
+mus <- mus %>% gather(realm_type, biome, c(22, 25))
+
+mus <- mus %>%
+  dplyr::select(type, ID, System, biome, Class, duration, startYear,
+                endYear, Longitude, Latitude)
+
+colnames(mus) <- c("type", "timeseries_id",
+                   "realm", "biome", "taxa", "duration", "start_year",
+                   "end_year", "long", "lat")
+
+samples_lpd <- mus %>%
+  filter(realm == "Terrestrial") %>%
   dplyr::select(timeseries_id, long, lat) %>%
-  distinct()
+  distinct() %>% ungroup()
 
 samples_lpd_simple <- samples_lpd %>% dplyr::select(long, lat)
 colnames(samples_lpd_simple) <- c("lon", "lat")
@@ -91,7 +108,7 @@ tmp.sites.lpd$timeseries_id <- samples_lpd$timeseries_id
 names(tmp.sites.lpd)[1393] <- "timeseries_id"
 
 # Save the extracted climate data to a .csv file
-save(tmp.sites.lpd, file = "data/output/CRU_LPD.RData")
+save(tmp.sites.lpd, file = "data/output/CRU_LPD2022.RData")
 
 # Turn into long format
 tmp.sites.long.lpd <- tmp.sites.lpd %>% gather(year, temperature, c(1:1392))
@@ -102,5 +119,5 @@ tmp.sites.long.lpd <- tmp.sites.long.lpd %>% dplyr::group_by(timeseries_id, year
   dplyr::summarise(mean_temp = mean(temperature))
 tmp_sites_long_lpd <- tmp.sites.long.lpd
 
-save(tmp_sites_long_lpd, file = "data/output/CRU_LPD_mean.RData")
+save(tmp_sites_long_lpd, file = "data/output/CRU_LPD_mean2022.RData")
 

@@ -24,7 +24,8 @@ library(sjPlot)
 library(ggeffects)
 
 # Load population, biodiversity and driver data
-load("data/output/popbio.RData") # Living Planet and BioTIME databases
+load("data/output/popbio2022.RData") # Living Planet and BioTIME databases
+
 # Space for time community data from PREDICTS
 # Note this file is not on GitHub because of its size
 # The file can be downloaded here 
@@ -32,7 +33,7 @@ load("data/output/popbio.RData") # Living Planet and BioTIME databases
 # Choose Database in zipped CSV format
 # The file is originally called database.csv, I renamed it to predicts.csv
 # The file path below needs to be updated if the file is put in another location
-predicts <- read.csv("data/input/predicts.csv")
+predicts <- read.csv("data/input/predicts_sites.csv")
 load("data/output/predicts_drivers.RData")
 predicts_drivers <- distinct(predicts_drivers)
 predicts_drivers$sampling <- "PREDICTS"
@@ -64,7 +65,7 @@ predicts.coords <- predicts %>%
 
 # Create column with marine versus terrestrial
 names(random_drivers)[7:8] <- c("decimallongitude", "decimallatitude")
-shape <- readOGR(dsn = "~/Downloads/ne_110m_land", layer = "ne_110m_land")
+shape <- readOGR(dsn = "data/input/ne_110m_land", layer = "ne_110m_land")
 random_drivers_marine <- random_drivers %>% cc_sea(ref = shape)
 random_drivers_marine$realm <- "Marine"
 random_drivers_terr <- anti_join(random_drivers, random_drivers_marine)
@@ -76,7 +77,17 @@ lpd.coords$sampling2 <- paste0(lpd.coords$realm, lpd.coords$sampling)
 random_drivers$sampling <- "Random sampling"
 random_drivers$sampling2 <- as.factor(paste0(random_drivers$realm, random_drivers$sampling))
 
-combined_pop <- rbind(random_drivers[, c(1:6, 9, 11)], lpd.coords[,c(15:20, 4, 23)])
+colnames(random_drivers)
+colnames(lpd.coords)
+
+lpd.coords <- lpd.coords %>% 
+  ungroup() %>%
+  dplyr::select(timeseries_id, climate_change, human_use,
+                human_population, pollution, 
+                invasions, cumulative,
+                realm, sampling2)
+
+combined_pop <- rbind(random_drivers[, c(1:6, 9, 11)], lpd.coords[, c(2:9)])
 
 combined_pop$sampling2 <- factor(combined_pop$sampling2, 
                                  levels = c("MarineRandom sampling", "TerrestrialRandom sampling",
@@ -111,18 +122,20 @@ predicts_drivers$database <- "PREDICTS"
 predicts_drivers <- predicts_drivers %>% gather(driver, intensity, 1:6)
 
 lpd.coords$database <- "LPD"
-lpd.coords <- lpd.coords %>% gather(driver, intensity, 15:20)
+lpd.coords <- lpd.coords %>% gather(driver, intensity, 2:7)
 lpd.coords$sampling <- "LPD"
 lpd.coords$sampling2 <- as.factor(paste0(lpd.coords$realm, lpd.coords$sampling))
 
 bt.coords$database <- "BioTIME"
-bt.coords <- bt.coords %>% gather(driver, intensity, 15:20)
+bt.coords <- bt.coords %>% gather(driver, intensity, 11:16)
 bt.coords$sampling <- "BioTIME"
 bt.coords$sampling2 <- as.factor(paste0(bt.coords$realm, bt.coords$sampling))
 
 colnames(predicts_drivers)
 colnames(lpd.coords)
 colnames(bt.coords)
+colnames(lpd.coords)[1] <- "study_id"
+colnames(bt.coords)[2] <- "study_id"
 
 lpd.coords.simple <- lpd.coords %>% dplyr::select(study_id, sampling, 
                                                   sampling2, realm, database, 
@@ -198,8 +211,11 @@ drivers_combined_r_pr_r <- drivers_combined_r %>% filter(sampling2 == "Terrestri
 drivers_combined_r_pr_r$database <- "PREDICTS"
 
 drivers_combined_r <- bind_rows(drivers_combined_r, drivers_combined_r_pr_r)
+#save(drivers_combined_r, file = "data/output/drivers_combined_r2022.RData")
 
 # Models ----
+load(drivers_combined_r, file = "data/output/drivers_combined_r2022.RData")
+
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
@@ -236,7 +252,7 @@ terr_driver_m <- brm(bf(intensity ~ sampling2*driver),
 # Check model and save output
 summary(terr_driver_m)
 plot(terr_driver_m)
-save(terr_driver_m, file = "data/output/terr_driver_m.RData")
+save(terr_driver_m, file = "data/output/terr_driver_m2022.RData")
 
 drivers_combined_r_r_marine$sampling2 <- factor(drivers_combined_r_r_marine$sampling2,
                                                 levels = c("MarineRandom sampling",
@@ -257,4 +273,4 @@ mar_driver_m <- brm(bf(intensity ~ sampling2*driver),
 # Check model and save output
 summary(mar_driver_m)
 plot(mar_driver_m)
-save(mar_driver_m, file = "data/output/mar_driver_m.RData")
+save(mar_driver_m, file = "data/output/mar_driver_m2022.RData")

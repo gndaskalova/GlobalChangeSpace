@@ -1,6 +1,6 @@
 # Collate population and biodiversity data with driver data
 # Gergana Daskalova
-# 1st March 2019
+# 12th Jan 2022
 # gndaskalova@gmail.com
 
 # The goal of this script is to extract the intensities of different global change drivers
@@ -12,32 +12,31 @@ library(raster)
 library(tidyverse)
 library(gridExtra)
 library(rgdal)
+library(sp)
+library(ggalt)
+library(ggthemes)
 library(dggridR)
+library(rasterVis)
 # might need to install dggridR from GitHub if you don't have it installed already
 # library(devtools) # Use `install.packages('devtools')` if need be
 # the dggridR package could take a while to install depending on your internet
 # install_github('r-barnes/dggridR', vignette=TRUE)
-library(sp)
-library(ggalt)
-library(ggthemes)
 
 # Load data ----
 # Population data from Living Planet Database
-mus <- read.csv("data/input/mus_1stMarch.csv")
+mus <- read.csv("data/input/LPR2020data_public.csv")
 
 # Assemblage data from BioTIME
-load("data/input/rarefied_medians2018_meta.RData")
-load("data/input/rarefied_mediansOct2017.Rdata")
-load("data/input/rarefied_medians2018.Rdata")
+load("data/input/bt_grid_coord.RData")
 
 # Space for time community data from PREDICTS
 # Note this file is not on GitHub because of its size
 # The file can be downloaded here 
 # https://data.nhm.ac.uk/dataset/the-2016-release-of-the-predicts-database
-# Choose Database in zipped CSV format
-# The file is originally called database.csv, I renamed it to predicts.csv
+# Choose Site level summaries in zipped CSV format
+# The file is originally called sites.csv, I renamed it to predicts.csv
 # The file path below needs to be updated if the file is put in another location
-predicts <- read.csv("data/input/predicts.csv")
+predicts <- read.csv("data/input/predicts_sites.csv")
 
 # Drivers
 # Note the .gri file has to be in the same folder as the grd one
@@ -54,80 +53,60 @@ atc_mar <- raster("data/input/clusterRaster_Mrank06.tif")
 # The two objects bt and bt2 are to combine the BioTIME database with a few additional
 # new studies that were added later
 
-bt <- rarefied_medians %>% 
+bt <- bt_grid_coord %>% 
   filter(REALM != "Freshwater" & duration > 4) %>%
   dplyr::select(REALM, BIOME_MAP, TAXA, duration, startYear, endYear, rarefyID_x,
-         rarefyID_y, Jtu_base, YEAR, rarefyID, STUDY_ID) %>%
-  mutate(year.test = YEAR == endYear) %>%
-  filter(year.test == TRUE) %>%
-  dplyr::select(-year.test, -YEAR) %>%
-  filter(!TAXA %in% c("Marine plants", "Reptiles"))
+         rarefyID_y, rarefyID) %>%
+  filter(!TAXA %in% c("Fungi", "Reptiles"))
 
-bt$metric <- "Turnover"
 bt$type <- "Biodiversity"
-bt$species <- "Community" # Because these data are not species-based
+bt <- bt %>% dplyr::select(type, rarefyID, REALM, BIOME_MAP,
+                           TAXA, duration, startYear, endYear,
+                           rarefyID_x, rarefyID_y)
 
-bt <- bt %>% dplyr::select(type, rarefyID, STUDY_ID,
-                           REALM, BIOME_MAP, TAXA, species, duration, 
-                           startYear, endYear, rarefyID_x,
-                           rarefyID_y, metric, Jtu_base)
+colnames(bt) <- c("type", "timeseries_id",
+                  "realm", "biome", "taxa", "duration", "start_year",
+                  "end_year", "long", "lat")
 
-colnames(bt) <- c("type", "timeseries_id", "study_id",
-                  "realm", "biome", "taxa", "species", "duration", "start_year",
-                  "end_year", "long", "lat", "metric", "value")
+# commented out to keep all time series regardless of Class
+# mus <- mus %>%
+#  filter(Class %in% c("Aves", "Amphibia", "Mammalia", "Reptilia",
+#                             "Actinopterygii", "Elasmobranchii"))
 
-bt2 <- rarefied_medians2018 %>% 
-  filter(REALM != "Freshwater" & duration > 4) %>%
-  dplyr::select(REALM, TAXA, BIOME_MAP, duration, startYear, endYear,
-                Jtu_base, YEAR, rarefyID, STUDY_ID) %>%
-  mutate(year.test = YEAR == endYear) %>%
-  filter(year.test == TRUE) %>%
-  dplyr::select(-year.test, -YEAR) %>%
-  filter(!TAXA %in% c("Marine plants", "Reptiles"))
-
-bt2$metric <- "Turnover"
-bt2$type <- "Biodiversity"
-bt2$species <- "Community"
-
-# Standardise colunmn names and create one combined file
-# the new_rarefied_medians_sept2_meta object comes from the file
-# that loads using load("data/input/rarefied_medians2018_meta.RData")
-
-coords <- new_rarefied_medians_sept2_meta %>% 
-  dplyr::select(STUDY_ID, CENT_LAT, CENT_LONG) %>% distinct()
-
-bt2 <- left_join(bt2, coords, by = "STUDY_ID")
-
-bt2 <- bt2 %>% dplyr::select(type, rarefyID, STUDY_ID,
-                           REALM, BIOME_MAP, TAXA, species, duration, 
-                           startYear, endYear, CENT_LONG,
-                           CENT_LAT, metric, Jtu_base) %>%
-  drop_na(CENT_LAT) %>% distinct()
-
-colnames(bt2) <- c("type", "timeseries_id", "study_id",
-                  "realm", "biome", "taxa", "species", "duration", "start_year",
-                  "end_year", "long", "lat", "metric", "value")
-
-bt <- rbind(bt, bt2)
-
-mus <- mus %>%
-  filter(Class %in% c("Aves", "Amphibia", "Mammalia", "Reptilia",
-                             "Actinopterygii", "Elasmobranchii"))
-mus$metric <- "Population change"
 mus$type <- "Population"
-mus$study_id <- mus$id
-mus$species <- paste(mus$Genus, mus$Species, sep = " ")
+
+# Turn data into long form
+mus <- mus %>% gather(year, pop, 30:98)
+mus$year <- parse_number(as.character(mus$year))
+mus$pop <- as.factor(mus$pop)
+levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
+mus <- mus %>% drop_na(pop)
+mus$pop <- parse_number(as.character(mus$pop))
+
+# Calculate duration per time series
+mus <- mus %>% group_by(ID) %>% 
+  mutate(duration = max(year) - min(year),
+         startYear = min(year),
+         endYear = max(year)) %>%
+  filter(System != "Freshwater")
+
+mus <- mus %>% gather(realm_type, biome, c(22, 25))
 
 mus <- mus %>%
-  dplyr::select(type, id, study_id, system, biome, Class, species, duration.x, startYear,
-                endYear, Decimal.Longitude, Decimal.Latitude,
-                metric, mu)
+  dplyr::select(type, ID, System, biome, Class, duration, startYear,
+                endYear, Longitude, Latitude)
 
-colnames(mus) <- c("type", "timeseries_id", "study_id",
-                  "realm", "biome", "taxa", "species", "duration", "start_year",
-                  "end_year", "long", "lat", "metric", "value")
+colnames(mus) <- c("type", "timeseries_id",
+                  "realm", "biome", "taxa", "duration", "start_year",
+                  "end_year", "long", "lat")
+
+# Check columns before combining LPD and BioTIME
+colnames(bt)
+bt$timeseries_id <- as.character(bt$timeseries_id)
+mus$timeseries_id <- as.character(mus$timeseries_id)
 
 popbio <- rbind(mus, bt)
+#save(popbio, file ="data/input/popbio2020.RData")
 
 # Extract driver data -----
 coords_sp <- SpatialPoints(cbind(popbio$long, popbio$lat), proj4string = CRS("+proj=longlat"))
@@ -182,6 +161,9 @@ inv <- subset(cumulative, 5)
 # Cumulative
 all <- subset(cumulative, 6)
 
+# Plot drivers
+levelplot(all)
+
 # Note that this stage can take a while
 df13 <- as.data.frame(raster::extract(cc, df_to_spp, fun = mean))
 colnames(df13) <- "climate_change"
@@ -231,7 +213,7 @@ popbio_mar_atc <- as.data.frame(raster::extract(atc_mar, coords_df_mar))
 
 # Unite the marine and terrestrial again
 popbio <- rbind(popbio_terr, popbio_mar)
-save(popbio, file = "data/output/popbio.RData")
+save(popbio, file = "data/output/popbio2022.RData")
 
 # Adding PREDICTS locations
 predicts <- predicts %>% drop_na(Latitude)
@@ -241,11 +223,11 @@ coords_sp <- SpatialPoints(cbind(predicts$Longitude, predicts$Latitude), proj4st
 coords_sp <- spTransform(coords_sp, CRS("+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
 coords_df <- as.data.frame(coords_sp@coords)
 
-save(coords_sp, file = "data/input/predicts_coords_simple.RData")
-save(coords_df, file = "data/input/predicts_coords_df_simple.RData")
+save(coords_sp, file = "data/input/predicts_coords_simple2022.RData")
+save(coords_df, file = "data/input/predicts_coords_df_simple2022.RData")
 
 predicts_ids <- predicts %>% dplyr::select(SS, Longitude, Latitude)
-save(predicts_ids, file = "data/input/predicts_ids.RData")
+save(predicts_ids, file = "data/input/predicts_ids2022.RData")
 
 colnames(coords_df) <- c("long", "lat")
 
@@ -258,8 +240,8 @@ coords_df$left <- coords_df$long + 0.04413495
 # Creating spatial polygons
 coords_df$study_id <- predicts$Study_number
 coords <- coords_df %>% dplyr::select(left, leftb, atop, bottom, study_id)
-coords3 <- coords %>% gather(type, lon, select = c(1:2))
-coords3 <- coords3 %>% gather(direction, lat, select = c(1:2))
+coords3 <- coords %>% gather(type, lon, 1:2)
+coords3 <- coords3 %>% gather(direction, lat, 1:2)
 coords3 <- coords3 %>% arrange(study_id)
 
 coords4 <- coords3 %>% group_by(study_id) %>% filter(row_number() == 1)
@@ -276,8 +258,8 @@ df_to_spp <- coords5 %>%
   do(polys = Polygons(list(.$poly),.$study_id)) %>%
   {SpatialPolygons(.$polys)}
 
-save(df_to_spp, file = "data/input/predicts_spp.RData")
-save(coords4, file = "data/input/predicts_coords.RData")
+save(df_to_spp, file = "data/input/predicts_spp2022.RData")
+save(coords4, file = "data/input/predicts_coords2022.RData")
 
 # plot(df_to_spp) # Check distribution, takes a while to plot!
 
@@ -312,7 +294,7 @@ drivers <- cbind(df13, df14, df15, df16, df17, df18)
 drivers$study_id <- ids$study_id
 
 predicts_drivers <- drivers
-save(predicts_drivers, file = "data/output/predicts_drivers.RData")
+save(predicts_drivers, file = "data/output/predicts_drivers2022.RData")
 
 # Random sampling driver extraction ----
 
@@ -376,3 +358,10 @@ random_drivers$long <- world_coords$long
 random_drivers <- na.omit(random_drivers)
 
 save(random_drivers, file = "data/output/random_samplingNov2020.RData")
+
+# Plot random drivers
+random_drivers_long <- random_drivers %>% gather(driver, value, 1:6)
+
+(driver_densities <- ggplot(random_drivers_long) +
+  geom_density(aes(x = lat, y = value)) +
+  facet_grid(~driver))

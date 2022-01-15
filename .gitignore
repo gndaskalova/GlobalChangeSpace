@@ -69,3 +69,12 @@ doc/*
 /.gitignore
 
 figures/*
+
+data/input/cru_ts4.01.1901.2016.tmp.dat.nc
+# big temp file, can be downloaded online
+# https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.01/cruts.1709081022.v4.01/tmp/
+
+data/inpit/sst.mnmean.nc
+# another big temp file, can be downloaded from
+# https://psl.noaa.gov/repository/entry/show/PSD+Climate+Data+Repository/Public/PSD+Datasets/NOAA+OI+SST/Weekly+and+Monthly/sst.mnmean.nc?entryid=cac1c2a6-a864-4409-bb77-1fdead8eeb6e&output=default.html
+# Please look for the file called sst.mnmean.nc
