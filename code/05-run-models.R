@@ -22,6 +22,8 @@ library(sjstats)
 library(parameters)
 library(sjPlot)
 library(ggeffects)
+library(rgdal)
+library(sp)
 
 # Load population, biodiversity and driver data
 load("data/output/popbio2022.RData") # Living Planet and BioTIME databases
@@ -214,7 +216,7 @@ drivers_combined_r <- bind_rows(drivers_combined_r, drivers_combined_r_pr_r)
 #save(drivers_combined_r, file = "data/output/drivers_combined_r2022.RData")
 
 # Models ----
-load(drivers_combined_r, file = "data/output/drivers_combined_r2022.RData")
+#load("data/output/drivers_combined_r2022.RData")
 
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())

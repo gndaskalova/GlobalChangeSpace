@@ -19,17 +19,11 @@ library(sjPlot)
 library(ggeffects)
 
 # Load models, output from from 05-run-models.R
-load("data/output/terr_driver_m.RData")
-load("data/output/mar_driver_m.RData")
+load("data/output/terr_driver_m2022.RData")
+load("data/output/mar_driver_m2022.RData")
 
 # Calculate model predictions
 predictions_terr <- ggpredict(terr_driver_m, terms = c("driver", "sampling2"))
-
-# Note that a warning message appears about a deprecated function
-# Warning message:
-# posterior_linpred(transform = TRUE) is deprecated. Please use pp_expect() instead, without the 'transform' argument. 
-
-# The code still works
 
 predictions_random <- predictions_terr %>% filter(group == "Random sampling")
 colnames(predictions_random) <- c("x", "random_predicted",
@@ -81,4 +75,4 @@ predictions_combo$data_realm <- factor(predictions_combo$data_realm,
                                                   "Living PlanetMarine",
                                                   "BioTIMEMarine"))
 
-save(predictions_combo, file = "data/output/predictions_combo.RData")
+save(predictions_combo, file = "data/output/predictions_combo2022.RData")
