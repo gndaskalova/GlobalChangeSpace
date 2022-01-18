@@ -50,7 +50,7 @@ library(broom)
 library(SIBER)
 
 # Load population, biodiversity and driver data
-load("data/output/popbio.RData") # Living Planet and BioTIME databases
+load("data/output/popbio2022.RData") # Living Planet and BioTIME databases
 
 # Space for time community data from PREDICTS
 # Note this file is not on GitHub because of its size
@@ -59,7 +59,7 @@ load("data/output/popbio.RData") # Living Planet and BioTIME databases
 # Choose Database in zipped CSV format
 # The file is originally called database.csv, I renamed it to predicts.csv
 # The file path below needs to be updated if the file is put in another location
-predicts <- read.csv("data/input/predicts.csv")
+predicts <- read.csv("data/input/predicts_sites.csv")
 load("data/output/predicts_drivers.RData")
 predicts_drivers <- distinct(predicts_drivers)
 predicts_drivers$sampling <- "PREDICTS"
@@ -164,7 +164,7 @@ lpd.coords$sampling2 <- paste0(lpd.coords$realm, lpd.coords$sampling)
 random_drivers$sampling <- "Random sampling"
 random_drivers$sampling2 <- as.factor(paste0(random_drivers$realm, random_drivers$sampling))
 
-combined_pop <- rbind(random_drivers[, c(1:6, 9, 11)], lpd.coords[,c(15:20, 4, 23)])
+combined_pop <- rbind(random_drivers[, c(1:6, 9, 11)], lpd.coords[,c(11:16, 3, 19)])
 
 combined_pop$sampling2 <- factor(combined_pop$sampling2, 
                                  levels = c("MarineRandom sampling", "TerrestrialRandom sampling",
@@ -182,7 +182,7 @@ combined_pop_marine_simple <- combined_pop_marine %>% dplyr::select(-cumulative,
 pop_mar_pca <- prcomp(combined_pop_marine_simple[, -6], scale = TRUE)
 
 (combined_pop_pca_mar <- factoextra::fviz_pca_biplot(pop_mar_pca, label ="var", 
-                                         select.var= list(name = c("human_population", "climate_change")),
+                                         select.var= list(name = c("human_use", "climate_change")),
                                          habillage = combined_pop_marine_simple$sampling2, col.var = "grey20",
                 addEllipses = TRUE, ellipse.level = 0.95,
                 repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
@@ -251,7 +251,7 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
                                           ellipse95.overlap[1] -
                                           ellipse95.overlap[3])
 
-# 70.6% overlap between LPD marine and global sampling
+# 69.9% overlap between LPD marine and global sampling
 
 combined_pop_terr_simple <- combined_pop_terr %>% dplyr::select(-cumulative, - realm) %>%
   distinct()
@@ -259,7 +259,7 @@ combined_pop_terr_simple <- combined_pop_terr %>% dplyr::select(-cumulative, - r
 pop_terr_pca <- prcomp(combined_pop_terr_simple[, 1:5], scale = TRUE)
 
 (combined_pop_pca_terr <- fviz_pca_biplot(pop_terr_pca, label ="var", 
-                                          select.var= list(name = c("human_population", "climate_change")),
+                                          select.var= list(name = c("human_use", "climate_change")),
                                          habillage = combined_pop_terr_simple$sampling2,
                                          col.var = "grey20",
                                          addEllipses = TRUE, ellipse.level = 0.95,
@@ -278,10 +278,10 @@ pop_terr_pca <- prcomp(combined_pop_terr_simple[, 1:5], scale = TRUE)
 
 pop_pca_panel <- grid.arrange(combined_pop_pca_terr, combined_pop_pca_mar, ncol = 2)
 
-ggsave(pop_pca_panel, filename = "figures/pop_pca_June2021.pdf",
+ggsave(pop_pca_panel, filename = "figures/pop_pca_2022.pdf",
        height = 5, width = 10)
 
-ggsave(pop_pca_panel, filename = "figures/pop_pca_June2021.png",
+ggsave(pop_pca_panel, filename = "figures/pop_pca_2022.png",
        height = 5, width = 10)
 
 # create the siber object to calculate overlap
@@ -295,7 +295,7 @@ test2$community <- "1"
 
 colnames(test2) <- c("iso1", "iso2", "group", "community")
 
-siber.example <- createSiberObject(test)
+siber.example <- createSiberObject(test2)
 
 group.ellipses.args  <- list(n = 100, p.interval = NULL, lty = 1, lwd = 2)
 
@@ -337,12 +337,12 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
                                           ellipse95.overlap[1] -
                                           ellipse95.overlap[3])
 
-# 31% overlap between LPD terrestrial and global sampling
+# 33.1% overlap between LPD terrestrial and global sampling
 
 bt.coords$sampling <- "BioTIME"
 bt.coords$sampling2 <- paste0(bt.coords$realm, bt.coords$sampling)
 
-combined_bio <- rbind(random_drivers[, c(1:6, 9, 11)], bt.coords[,c(15:20, 4, 23)])
+combined_bio <- rbind(random_drivers[, c(1:6, 9, 11)], bt.coords[,c(11:16, 3, 19)])
 
 combined_bio$sampling2 <- factor(combined_bio$sampling2, 
                                  levels = c("MarineRandom sampling", "TerrestrialRandom sampling",
@@ -359,7 +359,7 @@ combined_bio_marine_simple <- combined_bio_marine %>% dplyr::select(-cumulative,
 bio_mar_pca <- prcomp(combined_bio_marine_simple[, -6], scale = TRUE)
 
 (combined_bio_pca_mar <- fviz_pca_biplot(bio_mar_pca, label ="var", 
-                                         select.var= list(name = c("human_population", "climate_change")),
+                                         select.var= list(name = c("human_use", "climate_change")),
                                          habillage = combined_bio_marine_simple$sampling2, col.var = "grey20",
                                          addEllipses = TRUE, ellipse.level = 0.95,
                                          repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
@@ -429,7 +429,7 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
                                           ellipse95.overlap[1] -
                                           ellipse95.overlap[3])
 
-# 78% overlap between BioTIME marine and global sampling
+# 79.5% overlap between BioTIME marine and global sampling
 
 combined_bio_terr_simple <- combined_bio_terr %>% dplyr::select(-cumulative, - realm) %>%
   distinct()
@@ -437,7 +437,7 @@ combined_bio_terr_simple <- combined_bio_terr %>% dplyr::select(-cumulative, - r
 bio_terr_pca <- prcomp(combined_bio_terr_simple[, 1:5], scale = TRUE)
 
 (combined_bio_pca_terr <- fviz_pca_biplot(bio_terr_pca, label ="var", 
-                                          select.var= list(name = c("human_population", "climate_change")),
+                                          select.var= list(name = c("human_use", "climate_change")),
                                           habillage = combined_bio_terr_simple$sampling2,
                                           col.var = "grey20",
                                           addEllipses = TRUE, ellipse.level = 0.95,
@@ -455,9 +455,9 @@ bio_terr_pca <- prcomp(combined_bio_terr_simple[, 1:5], scale = TRUE)
                     ylim = c(3.5, -3.5)))
 
 bio_pca_panel <- grid.arrange(combined_bio_pca_terr, combined_bio_pca_mar, ncol = 2)
-ggsave(bio_pca_panel, filename = "figures/bio_pca_June2021.pdf",
+ggsave(bio_pca_panel, filename = "figures/bio_pca_2022.pdf",
        height = 5, width = 10)
-ggsave(bio_pca_panel, filename = "figures/bio_pca_June2021.png",
+ggsave(bio_pca_panel, filename = "figures/bio_pca_2022.png",
        height = 5, width = 10)
 
 # create the siber object to calculate overlap
@@ -514,7 +514,7 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
                                           ellipse95.overlap[1] -
                                           ellipse95.overlap[3])
 
-# 17% overlap between BioTIME terrestrial and global sampling
+# 17.2% overlap between BioTIME terrestrial and global sampling
 
 combined_predicts <- rbind(random_drivers[,c(1:6, 9, 11)], predicts_drivers[,c(1:6, 10, 9)])
 
@@ -531,7 +531,7 @@ combined_predicts_terr_simple <- combined_predicts %>% dplyr::select(-cumulative
 predicts_terr_pca <- prcomp(combined_predicts_terr_simple[, 1:5], scale = TRUE)
 
 (combined_predicts_pca_terr <- fviz_pca_biplot(predicts_terr_pca, label ="var", 
-                                          select.var= list(name = c("human_population", "climate_change")),
+                                          select.var= list(name = c("human_use", "climate_change")),
                                           habillage = combined_predicts_terr_simple$sampling2,
                                           col.var = "grey20",
                                           addEllipses = TRUE, ellipse.level = 0.95,
@@ -548,92 +548,10 @@ predicts_terr_pca <- prcomp(combined_predicts_terr_simple[, 1:5], scale = TRUE)
     coord_cartesian(xlim = c(7, -7),
                     ylim = c(3.5, -3.5)))
 
-ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.pdf",
+ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_space2022.pdf",
        height = 5, width = 5)
 
-ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.png",
-       height = 5, width = 5)
-
-# create the siber object to calculate overlap
-ind <- get_pca_ind(predicts_terr_pca)
-test5 <- as.data.frame(ind$coord[,1:2])
-test5$group <- NA
-
-test5$group <- combined_predicts_terr_simple$sampling2
-test5$community <- "1"
-
-colnames(test5) <- c("iso1", "iso2", "group", "community")
-
-siber.example <- createSiberObject(test5)
-
-par(mfrow=c(1,1))
-plotSiberObject(siber.example,
-                ax.pad = 2, 
-                hulls = F, community.hulls.args, 
-                ellipses = T, group.ellipses.args,
-                group.hulls = F, group.hull.args,
-                bty = "L",
-                iso.order = c(1,2))
-
-# In this example, I will calculate the overlap between ellipses for groups 2
-# and 3 in community 1 (i.e. the green and yellow open circles of data).
-
-# The first ellipse is referenced using a character string representation where 
-# in "x.y", "x" is the community, and "y" is the group within that community.
-# So in this example: community 1, group 2
-test5$group <- factor(test5$group, levels = c("Terrestrial Random sampling", "Terrestrial PREDICTS"),
-                      labels = c("2", "3"))
-test5 <- test5 %>% dplyr::select(iso1, iso2, group, community)
-colnames(test5) <- c("iso1", "iso2", "group", "community")
-
-ellipse1 <- "1.2"
-
-# Ellipse two is similarly defined: community 1, group3
-ellipse2 <- "1.3"
-
-siber.example <- createSiberObject(test5)
-
-# The overlap of the maximum likelihood fitted standard ellipses are 
-# estimated using
-sea.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
-                             p.interval = NULL, n = 100)
-
-# the overlap betweeen the corresponding 95% prediction ellipses is given by:
-ellipse95.overlap <- maxLikOverlap(ellipse1, ellipse2, siber.example, 
-                                   p.interval = 0.95, n = 100)
-
-# so in this case, the overlap as a proportion of the non-overlapping area of 
-# the two ellipses, would be
-prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] + 
-                                          ellipse95.overlap[1] -
-                                          ellipse95.overlap[3])
-
-# 28% overlap between BioTIME terrestrial and global sampling
-
-predicts_terr_pca <- prcomp(combined_predicts_terr_simple[, 1:5], scale = TRUE)
-
-(combined_predicts_pca_terr <- fviz_pca_biplot(predicts_terr_pca, label ="var", 
-                                               select.var= list(name = c("human_population", "climate_change")),
-                                               habillage = combined_predicts_terr_simple$sampling2,
-                                               col.var = "grey20",
-                                               addEllipses = TRUE, ellipse.level = 0.95,
-                                               repel = TRUE, pointsize = 2, arrowsize = 2, labelsize = 0) +
-    scale_colour_manual(values = c("grey80", "#7d8141")) +
-    scale_fill_manual(values = c("grey80", "#7d8141")) +
-    guides(colour = F, shape = F, fill = F) +
-    theme_void() +
-    annotate(geom = "text", x = -2.9, y = -3.5, label = "Climate change", size = 5,
-             color="grey20") +
-    # annotate(geom = "text", x = -6.62, y = 0.5, label = "Human density", size = 5,
-    #         color="grey20") +
-    labs(title = NULL) +
-    coord_cartesian(xlim = c(7, -7),
-                    ylim = c(3.5, -3.5)))
-
-ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.pdf",
-       height = 5, width = 5)
-
-ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_spaceJune2021.png",
+ggsave(combined_predicts_pca_terr, filename = "figures/predicts_gc_space2022.png",
        height = 5, width = 5)
 
 # create the siber object to calculate overlap
@@ -690,15 +608,15 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
                                           ellipse95.overlap[1] -
                                           ellipse95.overlap[3])
 
-# 28% overlap between BioTIME terrestrial and global sampling
+# 27.8% overlap between PREDICTS terrestrial and global sampling
 
 full_gc_panel <- grid.arrange(combined_pop_pca_terr, combined_bio_pca_terr, combined_predicts_pca_terr,
                               combined_pop_pca_mar, combined_bio_pca_mar, ncol = 3)
 
-ggsave(full_gc_panel, filename = "figures/full_gc_panelJune2021.pdf",
+ggsave(full_gc_panel, filename = "figures/full_gc_panel2022.pdf",
        height = 10, width = 15)
 
-ggsave(full_gc_panel, filename = "figures/full_gc_panelJune2021.png",
+ggsave(full_gc_panel, filename = "figures/full_gc_panel2022.png",
        height = 10, width = 15)
 
 length(unique(random_drivers_marine$cumulative))
