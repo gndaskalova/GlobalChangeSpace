@@ -10,6 +10,7 @@
 # Load packages
 library(raster)
 library(ncdf4)
+library(tidyverse)
 
 # The file here is too big for GitHub, you can download it from:
 # https://psl.noaa.gov/repository/entry/show/PSD+Climate+Data+Repository/Public/PSD+Datasets/NOAA+OI+SST/Weekly+and+Monthly/sst.mnmean.nc?entryid=cac1c2a6-a864-4409-bb77-1fdead8eeb6e&output=default.html
@@ -19,21 +20,21 @@ library(ncdf4)
 tmp <- brick("data/input/sst.mnmean.nc", varname="sst", package = "raster") # Mean monthly temperature
 
 # Import sample site information
-load("data/input/bt_grid_coord.Rdata")
+load("data/input/biotime.RData")
 
-samples <- bt_grid_coord %>%
-  filter(REALM == "Marine") %>%
-  dplyr::select(rarefyID, rarefyID_x, rarefyID_y) %>%
+samples <- bt %>%
+  filter(realm == "Marine") %>%
+  dplyr::select(timeseries_id, long, lat) %>%
   distinct()
 
-samples_simple <- samples %>% dplyr::select(rarefyID_x, rarefyID_y)
+samples_simple <- samples %>% dplyr::select(long, lat)
 colnames(samples_simple) <- c("lon", "lat")
 
 # Extract climate data from the RasterBrick as a data.frame
 tmp.sites <- data.frame(raster::extract(tmp, samples_simple, ncol = 2)) # Mean monthly temperature
 
 # Add sample site names to the data.frame
-tmp.sites$rarefyID <- samples$rarefyID
+tmp.sites$timeseries_id <- samples$timeseries_id
 
 # Save the extracted climate data to a .RData file
 save(tmp.sites, file = "data/output/NOAA_BioTIME2022.RData")
@@ -55,35 +56,35 @@ save(sst_sites_long, file = "data/output/NOAA_BioTIME_mean2022.RData")
 
 # For the Living Planet Database
 # Import sample site information
-mus <- read.csv("data/input/LPR2020data_public.csv")
-mus$type <- "Population"
+lpd <- read.csv("data/input/LPR2020data_public.csv")
+lpd$type <- "Population"
 
 # Turn data into long form
-mus <- mus %>% gather(year, pop, 30:98)
-mus$year <- parse_number(as.character(mus$year))
-mus$pop <- as.factor(mus$pop)
-levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
-mus <- mus %>% drop_na(pop)
-mus$pop <- parse_number(as.character(mus$pop))
+lpd <- lpd %>% gather(year, pop, 30:98)
+lpd$year <- parse_number(as.character(lpd$year))
+lpd$pop <- as.factor(lpd$pop)
+levels(lpd$pop)[levels(lpd$pop) == "NULL"] <- NA
+lpd <- lpd %>% drop_na(pop)
+lpd$pop <- parse_number(as.character(lpd$pop))
 
 # Calculate duration per time series
-mus <- mus %>% group_by(ID) %>% 
+lpd <- lpd %>% group_by(ID) %>% 
   mutate(duration = max(year) - min(year),
          startYear = min(year),
          endYear = max(year)) %>%
   filter(System != "Freshwater")
 
-mus <- mus %>% gather(realm_type, biome, c(22, 25))
+lpd <- lpd %>% gather(realm_type, biome, c(22, 25))
 
-mus <- mus %>%
+lpd <- lpd %>%
   dplyr::select(type, ID, System, biome, Class, duration, startYear,
                 endYear, Longitude, Latitude)
 
-colnames(mus) <- c("type", "timeseries_id",
+colnames(lpd) <- c("type", "timeseries_id",
                    "realm", "biome", "taxa", "duration", "start_year",
                    "end_year", "long", "lat")
 
-samples_lpd <- mus %>%
+samples_lpd <- lpd %>%
   filter(realm == "Marine") %>%
   dplyr::select(timeseries_id, long, lat) %>%
   distinct() %>% ungroup()
@@ -108,6 +109,8 @@ tmp.sites.long.lpd2 <- tmp.sites.long.lpd %>%
 
 tmp.sites.long.lpd2 <- tmp.sites.long.lpd %>%
   separate(year, ".")
+
+# Warning messages are fine, the code discarded the day and month data
 
 colnames(tmp.sites.long.lpd2)[2] <- "year"
 

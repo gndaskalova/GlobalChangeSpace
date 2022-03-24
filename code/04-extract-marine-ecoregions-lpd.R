@@ -67,47 +67,49 @@ setwd("~/GlobalChangeSpace")
 # Import sample site information
 # For the Living Planet Database
 # Import sample site information
-mus <- read.csv("data/input/LPR2020data_public.csv")
-mus$type <- "Population"
+lpd <- read.csv("data/input/LPR2020data_public.csv")
+lpd$type <- "Population"
 
 # Turn data into long form
-mus <- mus %>% gather(year, pop, 30:98)
-mus$year <- parse_number(as.character(mus$year))
-mus$pop <- as.factor(mus$pop)
-levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
-mus <- mus %>% drop_na(pop)
-mus$pop <- parse_number(as.character(mus$pop))
+lpd <- lpd %>% gather(year, pop, 30:98)
+lpd$year <- parse_number(as.character(lpd$year))
+lpd$pop <- as.factor(lpd$pop)
+levels(lpd$pop)[levels(lpd$pop) == "NULL"] <- NA
+lpd <- lpd %>% drop_na(pop)
+lpd$pop <- parse_number(as.character(lpd$pop))
 
 # Calculate duration per time series
-mus <- mus %>% group_by(ID) %>% 
+lpd <- lpd %>% group_by(ID) %>% 
   mutate(duration = max(year) - min(year),
          startYear = min(year),
          endYear = max(year)) %>%
   filter(System != "Freshwater")
 
-mus <- mus %>% gather(realm_type, biome, c(22, 25))
+lpd <- lpd %>% gather(realm_type, biome, c(22, 25))
 
-mus <- mus %>%
+lpd <- lpd %>%
   dplyr::select(type, ID, System, biome, Class, duration, startYear,
                 endYear, Longitude, Latitude)
 
-colnames(mus) <- c("type", "timeseries_id",
+colnames(lpd) <- c("type", "timeseries_id",
                    "realm", "biome", "taxa", "duration", "start_year",
                    "end_year", "long", "lat")
 
-samples_lpd <- mus %>%
+samples_lpd <- lpd %>%
   filter(realm == "Marine") %>%
   dplyr::select(timeseries_id, long, lat) %>%
   distinct() %>% ungroup()
 
-mus.coords.marine.simple <- samples_lpd %>%
+lpd.coords.marine.simple <- samples_lpd %>%
   dplyr::select(timeseries_id, lat, long) %>% distinct()
 
-colnames(mus.coords.marine.simple)[c(2,3)] <- c("lat1", "long1")
+colnames(lpd.coords.marine.simple)[c(2,3)] <- c("lat1", "long1")
 
-marine_ecoregions_lpd <- mus.coords.marine.simple %>% group_by(timeseries_id) %>% do(getRegionalInfo(.$lat1, .$long1))
+marine_ecoregions_lpd <- lpd.coords.marine.simple %>% 
+  group_by(timeseries_id) %>% 
+  do(getRegionalInfo(.$lat1, .$long1))
 length(unique(marine_ecoregions_lpd$ECOREGION))
 
 # 188 ecoregions
 # Just the number is needed to test % representation
-# There are data from 160 ecoregions for the marine Living Planet Database
+# There are data from 188 ecoregions for the marine Living Planet Database

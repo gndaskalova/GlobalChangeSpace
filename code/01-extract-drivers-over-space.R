@@ -24,10 +24,22 @@ library(rasterVis)
 
 # Load data ----
 # Population data from Living Planet Database
-mus <- read.csv("data/input/LPR2020data_public.csv")
+lpd <- read.csv("data/input/LPR2020data_public.csv")
 
 # Assemblage data from BioTIME
-load("data/input/bt_grid_coord.RData")
+bt <- readRDS("data/input/griddedBioTIMERF2022.rds")
+# Add metadata
+bioTIMEMetadataJune2021 <- read_csv("data/input/bioTIMEMetadataJune2021.csv")
+meta_bt <- bioTIMEMetadataJune2021 %>%
+  mutate(duration = END_YEAR - START_YEAR) %>%
+  dplyr::select(STUDY_ID, BIOME_MAP, duration, START_YEAR, END_YEAR)
+bt <- left_join(bt, meta_bt, by = "STUDY_ID")
+# Add latitude and longitude
+load("data/input/rarefyID_cell_centre_180322.Rdata")
+geo_meta <- rarefyID_cell_centre %>%
+  dplyr::select(rarefyID, rarefyID_x, rarefyID_y)
+bt <- left_join(bt, geo_meta, by = "rarefyID")
+#save(bt, file = "data/input/biotime.RData")
 
 # Space for time community data from PREDICTS
 # Note this file is not on GitHub because of its size
@@ -45,23 +57,19 @@ atc_terr <- raster("data/input/clusterRaster_Trank06.tif")
 atc_mar <- raster("data/input/clusterRaster_Mrank06.tif")
 
 # Data filtering ----
-# Include only time-series with 5 or more survey points
 # Include only marine and terrestrial studies
 # Include only taxa with enough representation, e.g. >40 time-series
 # Excluding freshwater data because there isn't enough driver data available for them
 
-# The two objects bt and bt2 are to combine the BioTIME database with a few additional
-# new studies that were added later
-
-bt <- bt_grid_coord %>% 
-  filter(REALM != "Freshwater" & duration > 4) %>%
-  dplyr::select(REALM, BIOME_MAP, TAXA, duration, startYear, endYear, rarefyID_x,
+bt <- bt %>% 
+  filter(REALM != "Freshwater") %>%
+  dplyr::select(REALM, BIOME_MAP, TAXA, duration, START_YEAR, END_YEAR, rarefyID_x,
          rarefyID_y, rarefyID) %>%
   filter(!TAXA %in% c("Fungi", "Reptiles"))
 
 bt$type <- "Biodiversity"
 bt <- bt %>% dplyr::select(type, rarefyID, REALM, BIOME_MAP,
-                           TAXA, duration, startYear, endYear,
+                           TAXA, duration, START_YEAR, END_YEAR,
                            rarefyID_x, rarefyID_y)
 
 colnames(bt) <- c("type", "timeseries_id",
@@ -69,44 +77,46 @@ colnames(bt) <- c("type", "timeseries_id",
                   "end_year", "long", "lat")
 
 # commented out to keep all time series regardless of Class
-# mus <- mus %>%
+# lpd <- lpd %>%
 #  filter(Class %in% c("Aves", "Amphibia", "Mammalia", "Reptilia",
 #                             "Actinopterygii", "Elasmobranchii"))
 
-mus$type <- "Population"
+lpd$type <- "Population"
 
 # Turn data into long form
-mus <- mus %>% gather(year, pop, 30:98)
-mus$year <- parse_number(as.character(mus$year))
-mus$pop <- as.factor(mus$pop)
-levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
-mus <- mus %>% drop_na(pop)
-mus$pop <- parse_number(as.character(mus$pop))
+lpd <- lpd %>% gather(year, pop, 30:98)
+lpd$year <- parse_number(as.character(lpd$year))
+lpd$pop <- as.factor(lpd$pop)
+levels(lpd$pop)[levels(lpd$pop) == "NULL"] <- NA
+lpd <- lpd %>% drop_na(pop)
+lpd$pop <- parse_number(as.character(lpd$pop))
 
 # Calculate duration per time series
-mus <- mus %>% group_by(ID) %>% 
+# Remove freshwater data
+lpd <- lpd %>% group_by(ID) %>% 
   mutate(duration = max(year) - min(year),
          startYear = min(year),
          endYear = max(year)) %>%
   filter(System != "Freshwater")
 
-mus <- mus %>% gather(realm_type, biome, c(22, 25))
+lpd <- lpd %>% gather(realm_type, biome, c(22, 25))
 
-mus <- mus %>%
+lpd <- lpd %>%
   dplyr::select(type, ID, System, biome, Class, duration, startYear,
                 endYear, Longitude, Latitude)
 
-colnames(mus) <- c("type", "timeseries_id",
+colnames(lpd) <- c("type", "timeseries_id",
                   "realm", "biome", "taxa", "duration", "start_year",
                   "end_year", "long", "lat")
 
 # Check columns before combining LPD and BioTIME
 colnames(bt)
 bt$timeseries_id <- as.character(bt$timeseries_id)
-mus$timeseries_id <- as.character(mus$timeseries_id)
+lpd$timeseries_id <- as.character(lpd$timeseries_id)
 
-popbio <- rbind(mus, bt)
-#save(popbio, file ="data/input/popbio2020.RData")
+popbio <- rbind(lpd, bt)
+popbio <- distinct(popbio)
+# save(popbio, file ="data/input/popbio2022.RData")
 
 # Extract driver data -----
 coords_sp <- SpatialPoints(cbind(popbio$long, popbio$lat), proj4string = CRS("+proj=longlat"))
@@ -119,32 +129,32 @@ coords_sp <- spTransform(coords_sp, CRS("+proj=eck4 +datum=WGS84 +ellps=WGS84 +t
 coords_df <- as.data.frame(coords_sp@coords)
 colnames(coords_df) <- c("long", "lat")
 
-# Creating corners at the appropriate locations around the locations of the time-series
-coords_df$atop <- coords_df$lat + 0.04413495
-coords_df$bottom <- coords_df$lat - 0.04413495
-coords_df$leftb <- coords_df$long - 0.04413495
-coords_df$left <- coords_df$long + 0.04413495
-
-# Creating spatial polygons
-coords_df$timeseries_id <- popbio$timeseries_id
-coords <- coords_df %>% dplyr::select(left, leftb, atop, bottom, timeseries_id)
-coords3 <- coords %>% gather(type, lon, 1:2)
-coords3 <- coords3 %>% gather(direction, lat, 1:2)
-coords3 <- coords3 %>% arrange(timeseries_id)
-
-coords4 <- coords3 %>% group_by(timeseries_id) %>% filter(row_number() == 1)
-coords4$order <- "2"
-coords3$order <- "1"
-coords5 <- full_join(coords3, coords4)
-coords5$sort <- paste0(coords5$type, coords5$direction)
-coords5 <- coords5 %>% arrange(timeseries_id, order, sort)
-
-df_to_spp <- coords5 %>%
-  group_by(timeseries_id) %>%
-  do(poly = dplyr::select(., lon, lat) %>% Polygon()) %>%
-  rowwise() %>%
-  do(polys = Polygons(list(.$poly),.$timeseries_id)) %>%
-  {SpatialPolygons(.$polys)}
+# # Creating corners at the appropriate locations around the locations of the time-series
+# coords_df$atop <- coords_df$lat + 0.04413495
+# coords_df$bottom <- coords_df$lat - 0.04413495
+# coords_df$leftb <- coords_df$long - 0.04413495
+# coords_df$left <- coords_df$long + 0.04413495
+# 
+# # Creating spatial polygons
+# coords_df$timeseries_id <- popbio$timeseries_id
+# coords <- coords_df %>% dplyr::select(left, leftb, atop, bottom, timeseries_id)
+# coords3 <- coords %>% gather(type, lon, 1:2)
+# coords3 <- coords3 %>% gather(direction, lat, 1:2)
+# coords3 <- coords3 %>% arrange(timeseries_id)
+# 
+# coords4 <- coords3 %>% group_by(timeseries_id) %>% filter(row_number() == 1)
+# coords4$order <- "2"
+# coords3$order <- "1"
+# coords5 <- full_join(coords3, coords4)
+# coords5$sort <- paste0(coords5$type, coords5$direction)
+# coords5 <- coords5 %>% arrange(timeseries_id, order, sort)
+# 
+# df_to_spp <- coords5 %>%
+#   group_by(timeseries_id) %>%
+#   do(poly = dplyr::select(., lon, lat) %>% Polygon()) %>%
+#   rowwise() %>%
+#   do(polys = Polygons(list(.$poly),.$timeseries_id)) %>%
+#   {SpatialPolygons(.$polys)}
 
 # plot(df_to_spp) # Check distribution, takes a while to plot!
 
@@ -165,22 +175,20 @@ all <- subset(cumulative, 6)
 levelplot(all)
 
 # Note that this stage can take a while
-df13 <- as.data.frame(raster::extract(cc, df_to_spp, fun = mean))
+df13 <- as.data.frame(raster::extract(cc, coords_df, fun = mean))
 colnames(df13) <- "climate_change"
-df14 <- as.data.frame(raster::extract(hu, df_to_spp, fun = mean))
+df14 <- as.data.frame(raster::extract(hu, coords_df, fun = mean))
 colnames(df14) <- "human_use"
-df15 <- as.data.frame(raster::extract(hp, df_to_spp, fun = mean))
+df15 <- as.data.frame(raster::extract(hp, coords_df, fun = mean))
 colnames(df15) <- "human_population"
-df16 <- as.data.frame(raster::extract(po, df_to_spp, fun = mean))
+df16 <- as.data.frame(raster::extract(po, coords_df, fun = mean))
 colnames(df16) <- "pollution"
-df17 <- as.data.frame(raster::extract(inv, df_to_spp, fun = mean))
+df17 <- as.data.frame(raster::extract(inv, coords_df, fun = mean))
 colnames(df17) <- "invasions"
-df18 <- as.data.frame(raster::extract(all, df_to_spp, fun = mean))
+df18 <- as.data.frame(raster::extract(all, coords_df, fun = mean))
 colnames(df18) <- "cumulative"
 
-popbio <- distinct(popbio)
-
-ids <- coords4 %>% dplyr::select(timeseries_id)
+ids <- popbio %>% dplyr::select(timeseries_id)
 drivers <- cbind(df13, df14, df15, df16, df17, df18)
 drivers$timeseries_id <- ids$timeseries_id
 
@@ -213,7 +221,7 @@ popbio_mar_atc <- as.data.frame(raster::extract(atc_mar, coords_df_mar))
 
 # Unite the marine and terrestrial again
 popbio <- rbind(popbio_terr, popbio_mar)
-save(popbio, file = "data/output/popbio2022.RData")
+save(popbio, file = "data/output/popbio2022ATC.RData")
 
 # Adding PREDICTS locations
 predicts <- predicts %>% drop_na(Latitude)
@@ -231,65 +239,53 @@ save(predicts_ids, file = "data/input/predicts_ids2022.RData")
 
 colnames(coords_df) <- c("long", "lat")
 
-# Creating corners at the appropriate locations around the locations of the time-series
-coords_df$atop <- coords_df$lat + 0.04413495
-coords_df$bottom <- coords_df$lat - 0.04413495
-coords_df$leftb <- coords_df$long - 0.04413495
-coords_df$left <- coords_df$long + 0.04413495
-
-# Creating spatial polygons
-coords_df$study_id <- predicts$Study_number
-coords <- coords_df %>% dplyr::select(left, leftb, atop, bottom, study_id)
-coords3 <- coords %>% gather(type, lon, 1:2)
-coords3 <- coords3 %>% gather(direction, lat, 1:2)
-coords3 <- coords3 %>% arrange(study_id)
-
-coords4 <- coords3 %>% group_by(study_id) %>% filter(row_number() == 1)
-coords4$order <- "2"
-coords3$order <- "1"
-coords5 <- full_join(coords3, coords4)
-coords5$sort <- paste0(coords5$type, coords5$direction)
-coords5 <- coords5 %>% arrange(study_id, order, sort)
-
-df_to_spp <- coords5 %>%
-  group_by(study_id) %>%
-  do(poly = dplyr::select(., lon, lat) %>% Polygon()) %>%
-  rowwise() %>%
-  do(polys = Polygons(list(.$poly),.$study_id)) %>%
-  {SpatialPolygons(.$polys)}
-
-save(df_to_spp, file = "data/input/predicts_spp2022.RData")
-save(coords4, file = "data/input/predicts_coords2022.RData")
+# # Creating corners at the appropriate locations around the locations of the time-series
+# coords_df$atop <- coords_df$lat + 0.04413495
+# coords_df$bottom <- coords_df$lat - 0.04413495
+# coords_df$leftb <- coords_df$long - 0.04413495
+# coords_df$left <- coords_df$long + 0.04413495
+# 
+# # Creating spatial polygons
+# coords_df$study_id <- predicts$Study_number
+# coords <- coords_df %>% dplyr::select(left, leftb, atop, bottom, study_id)
+# coords3 <- coords %>% gather(type, lon, 1:2)
+# coords3 <- coords3 %>% gather(direction, lat, 1:2)
+# coords3 <- coords3 %>% arrange(study_id)
+# 
+# coords4 <- coords3 %>% group_by(study_id) %>% filter(row_number() == 1)
+# coords4$order <- "2"
+# coords3$order <- "1"
+# coords5 <- full_join(coords3, coords4)
+# coords5$sort <- paste0(coords5$type, coords5$direction)
+# coords5 <- coords5 %>% arrange(study_id, order, sort)
+# 
+# df_to_spp <- coords5 %>%
+#   group_by(study_id) %>%
+#   do(poly = dplyr::select(., lon, lat) %>% Polygon()) %>%
+#   rowwise() %>%
+#   do(polys = Polygons(list(.$poly),.$study_id)) %>%
+#   {SpatialPolygons(.$polys)}
+# 
+# save(df_to_spp, file = "data/input/predicts_spp2022.RData")
+# save(coords4, file = "data/input/predicts_coords2022.RData")
 
 # plot(df_to_spp) # Check distribution, takes a while to plot!
 
-# Climate change
-cc <- subset(cumulative, 1)
-# Human use
-hu <- subset(cumulative, 2)
-# Human population
-hp <- subset(cumulative, 3)
-# Pollution
-po <- subset(cumulative, 4)
-# Invasions
-inv <- subset(cumulative, 5)
-# Cumulative
-all <- subset(cumulative, 6)
-
-df13 <- as.data.frame(raster::extract(cc, df_to_spp, fun = mean))
+df13 <- as.data.frame(raster::extract(cc, coords_df, fun = mean))
 colnames(df13) <- "climate_change"
-df14 <- as.data.frame(raster::extract(hu, df_to_spp, fun = mean))
+df14 <- as.data.frame(raster::extract(hu, coords_df, fun = mean))
 colnames(df14) <- "human_use"
-df15 <- as.data.frame(raster::extract(hp, df_to_spp, fun = mean))
+df15 <- as.data.frame(raster::extract(hp, coords_df, fun = mean))
 colnames(df15) <- "human_population"
-df16 <- as.data.frame(raster::extract(po, df_to_spp, fun = mean))
+df16 <- as.data.frame(raster::extract(po, coords_df, fun = mean))
 colnames(df16) <- "pollution"
-df17 <- as.data.frame(raster::extract(inv, df_to_spp, fun = mean))
+df17 <- as.data.frame(raster::extract(inv, coords_df, fun = mean))
 colnames(df17) <- "invasions"
-df18 <- as.data.frame(raster::extract(all, df_to_spp, fun = mean))
+df18 <- as.data.frame(raster::extract(all, coords_df, fun = mean))
 colnames(df18) <- "cumulative"
 
-ids <- coords4 %>% dplyr::select(study_id)
+coords_df$study_id <- predicts$Study_number
+ids <- coords_df %>% dplyr::select(study_id)
 drivers <- cbind(df13, df14, df15, df16, df17, df18)
 drivers$study_id <- ids$study_id
 

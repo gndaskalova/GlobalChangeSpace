@@ -619,44 +619,6 @@ ggsave(full_gc_panel, filename = "figures/full_gc_panel2022.pdf",
 ggsave(full_gc_panel, filename = "figures/full_gc_panel2022.png",
        height = 10, width = 15)
 
-length(unique(random_drivers_marine$cumulative))
-# 10192
-
-length(unique(random_drivers_terr$cumulative))
-# 40697
-
-length(unique(lpd.coords.marine$cumulative))
-# 874
-
-length(unique(lpd.coords.terr$cumulative))
-# 814
-
-length(unique(bt.coords.marine$cumulative))
-# 2049
-
-length(unique(bt.coords.terr$cumulative))
-# 571
-
-length(unique(predicts_drivers$cumulative))
-# 906
-
-# marine percentages
-# LPD 0.08575353
-874/10192
-
-# BioTIME 0.20104
-2049/10192
-
-# terrestrial percentages
-# LPD 0.02000147
-814/40697
-
-# BioTIME 0.01403052
-571/40697
-
-# PREDICTS 0.02226208
-906/40697
-
 # Fig 2 Distributions of driver intensities ----
 # Standardise between 0 and 1
 predicts_drivers <- na.omit(predicts_drivers)
@@ -681,25 +643,22 @@ predicts_drivers$database <- "PREDICTS"
 predicts_drivers <- predicts_drivers %>% gather(driver, intensity, 1:6)
 
 lpd.coords$database <- "LPD"
-lpd.coords <- lpd.coords %>% gather(driver, intensity, 15:20)
-lpd.coords$sampling <- "LPD"
-lpd.coords$sampling2 <- as.factor(paste0(lpd.coords$realm, lpd.coords$sampling))
+lpd.coords <- lpd.coords %>% gather(driver, intensity, 11:16)
 
 bt.coords$database <- "BioTIME"
-bt.coords <- bt.coords %>% gather(driver, intensity, 15:20)
-bt.coords$sampling <- "BioTIME"
-bt.coords$sampling2 <- as.factor(paste0(bt.coords$realm, bt.coords$sampling))
+bt.coords <- bt.coords %>% gather(driver, intensity, 11:16)
 
 colnames(predicts_drivers)
 colnames(lpd.coords)
 colnames(bt.coords)
+colnames(lpd.coords)[2] <- "study_id"
 
 lpd.coords.simple <- lpd.coords %>% dplyr::select(study_id, sampling, 
                                                   sampling2, realm, database, 
                                                   driver, intensity)
 bt.coords.simple <- bt.coords %>% dplyr::select(study_id, sampling, 
-                                                  sampling2, realm, database, 
-                                                  driver, intensity)
+                                                sampling2, realm, database, 
+                                                driver, intensity)
 
 str(predicts_drivers)
 str(bt.coords.simple)
@@ -764,10 +723,6 @@ predicts_drivers_scaled <- predicts_drivers %>% filter(driver == "human_use")
 min(predicts_drivers_scaled$intensity)
 max(predicts_drivers_scaled$intensity)
 
-# Calculating Hellinger distance
-hellinger(x1, x2, nbreaks = 100, minx = min(c(x1, x2)),
-          maxx = max(c(x1, x2)))
-
 (driver_density_plot_mar <- ggplot(drivers_combined_r[drivers_combined_r$realm == "Marine",], 
                                    aes(x = intensity, y = fct_rev(driver), 
                                        colour = fct_rev(sampling2),
@@ -829,16 +784,16 @@ drivers_combined_r$database <- factor(drivers_combined_r$database,
     guides(fill = F, colour = F, linetype = F))
 
 # Saving the graphs
-ggsave(driver_density_plot_terr, filename = "figures/distributionsJune_terr.pdf", height = 7, width = 8.3)
-ggsave(driver_density_plot_terr, filename = "figures/distributionsJune_terr.png", height = 7, width = 8.3)
+ggsave(driver_density_plot_terr, filename = "figures/distributions2022_terr.pdf", height = 7, width = 8.3)
+ggsave(driver_density_plot_terr, filename = "figures/distributions2022_terr.png", height = 7, width = 8.3)
 
-ggsave(driver_density_plot_mar, filename = "figures/distributionsJune_mar.pdf", height = 7, width = 6)
-ggsave(driver_density_plot_mar, filename = "figures/distributionsJune_mar.png", height = 7, width = 6)
+ggsave(driver_density_plot_mar, filename = "figures/distributions2022_mar.pdf", height = 7, width = 6)
+ggsave(driver_density_plot_mar, filename = "figures/distributions2022_mar.png", height = 7, width = 6)
 
 # Load model predictions
 # Models were run in 05-run-models
 # Predictions were calculated in 06-calculate-predictions
-load("data/output/predictions_combo.RData")
+load("data/output/predictions_combo2022.RData")
 
 (predictions_deviation_plot <- ggplot(predictions_combo, aes(x = deviation, y = x)) +
   geom_bar(aes(fill = data_realm), stat = "identity", 
@@ -870,14 +825,14 @@ load("data/output/predictions_combo.RData")
         plot.title = element_text(size = 14, hjust = 0.05, 
                                   color = "grey20", face = "bold")))
 
-ggsave(predictions_deviation_plot, filename = "figures/predictions_deviation_plot.pdf", height = 4, width = 14.3)
-ggsave(predictions_deviation_plot, filename = "figures/predictions_deviation_plot.png", height = 4, width = 14.3)
+ggsave(predictions_deviation_plot, filename = "figures/predictions_deviation_plot2022.pdf", height = 4, width = 14.3)
+ggsave(predictions_deviation_plot, filename = "figures/predictions_deviation_plot2022.png", height = 4, width = 14.3)
 
 # Fig 3 Global change temporal representation ----
-load("data/output/CRU_BioTIME_mean.RData")
-load("data/output/CRU_LPD_mean.RData")
-load("data/output/NOAA_BioTIME_mean.RData")
-load("data/output/NOAA_LPD_mean.RData")
+load("data/output/CRU_BioTIME_mean2022.RData")
+load("data/output/CRU_LPD_mean2022.RData")
+load("data/output/NOAA_BioTIME_mean2022.RData")
+load("data/output/NOAA_LPD_mean2022.RData")
 
 # Filter out the temperature records for periods
 # equal to the duration of each time-series (before they started)
@@ -943,17 +898,17 @@ temp_models_spread <- temp_models %>%
           plot.title = element_text(size = 14, hjust = 0.05, 
                                     color = "grey20", face = "bold")))
 
-ggsave(bt_climate1, filename = "figures/biotime_cru_terr.png", height = 5, width = 5)
-ggsave(bt_climate1, filename = "figures/biotime_cru_terr.pdf", height = 5, width = 5)
+ggsave(bt_climate1, filename = "figures/biotime_cru_terr2022.png", height = 5, width = 5)
+ggsave(bt_climate1, filename = "figures/biotime_cru_terr2022.pdf", height = 5, width = 5)
 
 temp_models_spread$test <- temp_models_spread$`During monitoring` >  temp_models_spread$`Before monitoring`
 summary(temp_models_spread$test)
 # Mode   FALSE    TRUE    NA's 
-# logical     956    1226       2 
+# logical     667    1269       2 
 
-1226/(1226+956)
+1269/(1269+667)
 
-# 56% of BioTIME terr time series experienced more warming during time series than before
+# 65% of BioTIME terr time series experienced more warming during time series than before
 
 # LPD
 lpd <- popbio %>% filter(type == "Population")
@@ -963,6 +918,12 @@ lpd$end_comparison <- lpd$start_year - 1
 
 lpd_simpler <- lpd %>% dplyr::select(timeseries_id, start_year, end_year, start_comparison,
                                      end_comparison, duration)
+
+str(tmp_sites_long_lpd)
+str(lpd_simpler)
+# Make timeseries_id columns the same type
+tmp_sites_long_lpd$timeseries_id <- as.factor(as.character(tmp_sites_long_lpd$timeseries_id))
+lpd_simpler$timeseries_id <- as.factor(as.character(lpd_simpler$timeseries_id))
 
 temp_lpd <- left_join(tmp_sites_long_lpd, lpd_simpler, by = "timeseries_id")
 
@@ -975,6 +936,10 @@ temp_lpd3 <- temp_lpd3 %>% mutate(timing = case_when(year < end_comparison + 1 ~
                                                      year > start_year - 1 ~ "During monitoring"))
 
 temp_lpd3b <- na.omit(temp_lpd3)
+
+# Keep only time series with duration of more than 4 years
+temp_lpd3b <- temp_lpd3b %>%
+  filter(duration > 4)
 
 temp_models_lpd <- temp_lpd3b %>% group_by(timeseries_id, timing) %>%
   do(broom::tidy(lm(mean_temp ~ year, data = .)))
@@ -1013,30 +978,37 @@ lpd_temp_models_spread <- temp_models_lpd %>% drop_na(year) %>%
 
 warming_terr_panel <- grid.arrange(lpd_climate1, bt_climate1, ncol = 2)
 
-ggsave(warming_terr_panel, filename = "figures/warming_panel.png", height = 5, width = 12)
-ggsave(warming_terr_panel, filename = "figures/warming_panel.pdf", height = 5, width = 12)
+ggsave(warming_terr_panel, filename = "figures/warming_panel2022.png", height = 5, width = 12)
+ggsave(warming_terr_panel, filename = "figures/warming_panel2022.pdf", height = 5, width = 12)
 
 lpd_temp_models_spread$test <- lpd_temp_models_spread$`During monitoring` >  lpd_temp_models_spread$`Before monitoring`
 summary(lpd_temp_models_spread$test)
 # Mode   FALSE    TRUE 
-# logical    1116    3455
+# logical    1298    2246 
 
-3455/(3455+1116)
+2246/(2246+1298)
 
-# 76% of LPD terr time series experienced more warming during time series than before
+# 63% of LPD terr time series experienced more warming during time series than before
 
 # Marine LPD
+# Make timeseries_id columns the same type
+sst_sites_long_lpd$timeseries_id <- as.factor(as.character(sst_sites_long_lpd$timeseries_id))
+
 temp_lpd_mar <- left_join(sst_sites_long_lpd, lpd_simpler, by = "timeseries_id")
 
 str(temp_lpd_mar)
 
-temp_lpd_mar2 <- temp_lpd_mar %>% dplyr::filter(year > start_comparison -1)
+temp_lpd_mar2 <- temp_lpd_mar %>% dplyr::filter(year > start_comparison - 1)
 temp_lpd_mar3 <- temp_lpd_mar2 %>% dplyr::filter(year < end_year + 1)
 
 temp_lpd_mar3 <- temp_lpd_mar3 %>% mutate(timing = case_when(year < end_comparison + 1 ~ "Before monitoring",
                                                      year > start_year - 1 ~ "During monitoring"))
 
 temp_lpd_mar3b <- na.omit(temp_lpd_mar3)
+
+# Keep only time series with more than 4 years of data
+temp_lpd_mar3b <- temp_lpd_mar3b %>%
+  filter(duration > 4) %>% distinct()
 
 temp_models_lpd_mar <- temp_lpd_mar3b %>% group_by(timeseries_id, timing) %>%
   do(broom::tidy(lm(mean_temp ~ year, data = .)))
@@ -1046,7 +1018,12 @@ temp_models_lpd_mar <- temp_models_lpd_mar %>%
 
 lpd_temp_models_spread_mar <- temp_models_lpd_mar %>% drop_na(year) %>%
   dplyr::select(timeseries_id, timing, year) %>%
-  spread(timing, year)
+  spread(timing, year) %>%
+  drop_na(`Before monitoring`)
+
+# Note that there are some time series for which climate data were not available
+# (too far back in the past) thus why there were time series for which temperature
+# change before the monitoring began could not be calculated
 
 (lpd_climate2 <- ggplot(lpd_temp_models_spread_mar, aes(y = `Before monitoring`, x = `During monitoring`)) +
     stat_density_2d(aes(fill = ..level..), geom = "polygon",
@@ -1055,7 +1032,7 @@ lpd_temp_models_spread_mar <- temp_models_lpd_mar %>% drop_na(year) %>%
          y = "Temperature change\nbefore monitoring (slope)\n", fill = "Density") +
     scale_fill_gradient(low = "#50b2b2", high = "#235051") +
     ggtitle("\ne     Climate warming over time (Living Planet marine)") +
-    coord_cartesian(y = c(-0.12, 0.12), xlim = c(-0.12, 0.12)) +
+    #coord_cartesian(y = c(-0.12, 0.12), xlim = c(-0.12, 0.12)) +
     geom_vline(xintercept = 0, linetype = "dotted") +
     geom_hline(yintercept = 0, linetype = "dotted") +
     theme_classic() +
@@ -1076,13 +1053,16 @@ lpd_temp_models_spread_mar <- temp_models_lpd_mar %>% drop_na(year) %>%
 lpd_temp_models_spread_mar$test <- lpd_temp_models_spread_mar$`During monitoring` >  lpd_temp_models_spread_mar$`Before monitoring`
 summary(lpd_temp_models_spread_mar$test)
 # Mode   FALSE    TRUE 
-# logical     320     564 
+# logical     573     465 
 
-564/(564+320)
+465/(465+573)
 
-# 64% of LPD marine time series experienced more warming during time series than before
+# 45% of LPD marine time series experienced more warming during time series than before
 
 # Marine BioTIME
+colnames(sst_sites_long)[2] <- "year"
+sst_sites_long$year <- parse_number(sst_sites_long$year)
+
 temp_bt_mar <- left_join(sst_sites_long, bt_simpler, by = "rarefyID")
 
 str(temp_bt_mar)
@@ -1094,9 +1074,11 @@ temp_bt_mar3 <- temp_bt_mar3 %>% mutate(timing = case_when(year < end_comparison
                                                              year > start_year - 1 ~ "During monitoring"))
 
 temp_bt_mar3b <- na.omit(temp_bt_mar3)
+temp_bt_mar3b <- distinct(temp_bt_mar3)
+temp_bt_mar3b <- temp_bt_mar3b %>% drop_na(temperature)
 
 temp_models_bt_mar <- temp_bt_mar3b %>% group_by(rarefyID, timing) %>%
-  do(broom::tidy(lm(mean_temp ~ year, data = .)))
+  do(broom::tidy(lm(temperature ~ year, data = .)))
 
 temp_models_bt_mar <- temp_models_bt_mar %>%
   spread(term, estimate)
@@ -1112,7 +1094,7 @@ bt_temp_models_spread_mar <- temp_models_bt_mar %>% drop_na(year) %>%
          y = "Temperature change\nbefore monitoring (slope)\n", fill = "Density") +
     scale_fill_gradient(low = "#50b2b2", high = "#235051") +
     ggtitle("\nb     Climate warming over time (Living Planet marine)") +
-    coord_cartesian(y = c(-0.12, 0.12), xlim = c(-0.12, 0.12)) +
+    #coord_cartesian(y = c(-0.12, 0.12), xlim = c(-0.12, 0.12)) +
     geom_vline(xintercept = 0, linetype = "dotted") +
     geom_hline(yintercept = 0, linetype = "dotted") +
     theme_classic() +
@@ -1389,7 +1371,7 @@ world <- map_data("world")
   coord_proj("+proj=eck4") +
   ylim(-80, 80) +
   scale_fill_gradient(low = "#50b2b2", high = "#235051",
-    name = "Number of studies\n(Total = 2700)", 
+    name = "Number of studies\n(Total = 7078)", 
     breaks = c(1, 40, 80),
     guide = guide_legend(keyheight = unit(2.5, units = "mm"),
                           keywidth = unit(8, units = "mm"), 
@@ -1410,7 +1392,7 @@ world <- map_data("world")
     coord_proj("+proj=eck4") +
     ylim(-80, 80) +
     scale_fill_gradient(low = "#be925a", high = "#36230d",
-                        name = "Number of studies\n(Total = 4640)", 
+                        name = "Number of studies\n(Total = 4862)", 
                         breaks = c(1, 150, 300),
                         guide = guide_legend(keyheight = unit(2.5, units = "mm"),
                                              keywidth = unit(8, units = "mm"), 
@@ -1432,7 +1414,7 @@ world <- map_data("world")
     coord_proj("+proj=eck4") +
     ylim(-80, 80) +
     scale_fill_gradient(low = "#5c98bd", high = "#233d4d",
-                        name = "Number of studies\n(Total = 42341)", 
+                        name = "Number of studies\n(Total = 45432)", 
                         breaks = c(1, 500, 1500),
                         guide = guide_legend(keyheight = unit(2.5, units = "mm"),
                                              keywidth = unit(8, units = "mm"), 
@@ -1453,7 +1435,7 @@ world <- map_data("world")
     coord_proj("+proj=eck4") +
     ylim(-80, 80) +
     scale_fill_gradient(low = "#eaa9bc", high = "#441540",
-                        name = "Number of studies\n(Total = 2191)", 
+                        name = "Number of studies\n(Total = 1942)", 
                         breaks = c(1, 100, 200),
                         guide = guide_legend(keyheight = unit(2.5, units = "mm"),
                                              keywidth = unit(8, units = "mm"), 
@@ -1473,7 +1455,7 @@ world <- map_data("world")
     coord_proj("+proj=eck4") +
     ylim(-80, 80) +
     scale_fill_gradient(low = "#a3ad62", high = "#242610",
-                        name = "Number of studies\n(Total = 468)", 
+                        name = "Number of studies\n(Total = 658)", 
                         breaks = c(1, 5, 10),
                         guide = guide_legend(keyheight = unit(2.5, units = "mm"),
                                              keywidth = unit(10, units = "mm"), 
@@ -1493,6 +1475,8 @@ length(unique(predicts$Ecoregion))
 281/867
 # 0.3241061 for PREDICTS
 
+length(unique(bt.coords.terr$biome))
+
 load("data/input/rarefied_mediansOct2017.Rdata")
 bt_eco_terr <- rarefied_medians %>% filter(REALM == "Terrestrial") 
 length(unique(bt_eco_terr$Ecoregion)) # 141
@@ -1511,8 +1495,8 @@ wwf <- WWFload(wd)
 
 #Ecoregions
 lpd.coords2 <- lpd.coords %>% filter(realm == "Terrestrial")
-colnames(lpd.coords2)[c(11,12)] <- c("decimallongitude", "decimallatitude")
-lpd.coords2 <- lpd.coords2 %>% dplyr::select(timeseries_id, decimallongitude, decimallatitude)
+colnames(lpd.coords2)[c(9,10)] <- c("decimallongitude", "decimallatitude")
+lpd.coords2 <- lpd.coords2 %>% dplyr::select(study_id, decimallongitude, decimallatitude)
 colnames(lpd.coords2)[1] <- "species"
 outp <- SpGeoCod(lpd.coords2, wwf, areanames = "ECO_NAME")
 counts <- outp$samples

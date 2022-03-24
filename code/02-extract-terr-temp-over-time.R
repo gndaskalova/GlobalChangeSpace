@@ -23,21 +23,21 @@ library(ncdf4)
 tmp <- brick("data/input/cru_ts4.01.1901.2016.tmp.dat.nc", varname="tmp", package = "raster") # Mean monthly temperature
 
 # Import sample site information
-load("data/input/bt_grid_coord.Rdata")
+load("data/input/biotime.RData")
 
-samples <- bt_grid_coord %>%
-  filter(REALM == "Terrestrial") %>%
-  dplyr::select(rarefyID, rarefyID_x, rarefyID_y) %>%
+samples <- bt %>%
+  filter(realm == "Terrestrial") %>%
+  dplyr::select(timeseries_id, long, lat) %>%
   distinct()
 
-samples_simple <- samples %>% dplyr::select(rarefyID_x, rarefyID_y)
+samples_simple <- samples %>% dplyr::select(long, lat)
 colnames(samples_simple) <- c("lon", "lat")
 
 # Extract climate data from the RasterBrick as a data.frame
 tmp.sites <- data.frame(raster::extract(tmp, samples_simple, ncol = 2)) # Mean monthly temperature
 
 # Add sample site names to the data.frame
-tmp.sites$rarefyID <- samples$rarefyID
+tmp.sites$timeseries_id <- samples$timeseries_id
 
 # Change column names
 years <- 1901:2016
@@ -61,35 +61,35 @@ save(tmp_sites_long, file = "data/output/CRU_BioTIME_mean2022.RData")
 
 # For the Living Planet Database
 # Import sample site information
-mus <- read.csv("data/input/LPR2020data_public.csv")
-mus$type <- "Population"
+lpd <- read.csv("data/input/LPR2020data_public.csv")
+lpd$type <- "Population"
 
 # Turn data into long form
-mus <- mus %>% gather(year, pop, 30:98)
-mus$year <- parse_number(as.character(mus$year))
-mus$pop <- as.factor(mus$pop)
-levels(mus$pop)[levels(mus$pop) == "NULL"] <- NA
-mus <- mus %>% drop_na(pop)
-mus$pop <- parse_number(as.character(mus$pop))
+lpd <- lpd %>% gather(year, pop, 30:98)
+lpd$year <- parse_number(as.character(lpd$year))
+lpd$pop <- as.factor(lpd$pop)
+levels(lpd$pop)[levels(lpd$pop) == "NULL"] <- NA
+lpd <- lpd %>% drop_na(pop)
+lpd$pop <- parse_number(as.character(lpd$pop))
 
 # Calculate duration per time series
-mus <- mus %>% group_by(ID) %>% 
+lpd <- lpd %>% group_by(ID) %>% 
   mutate(duration = max(year) - min(year),
          startYear = min(year),
          endYear = max(year)) %>%
   filter(System != "Freshwater")
 
-mus <- mus %>% gather(realm_type, biome, c(22, 25))
+lpd <- lpd %>% gather(realm_type, biome, c(22, 25))
 
-mus <- mus %>%
+lpd <- lpd %>%
   dplyr::select(type, ID, System, biome, Class, duration, startYear,
                 endYear, Longitude, Latitude)
 
-colnames(mus) <- c("type", "timeseries_id",
+colnames(lpd) <- c("type", "timeseries_id",
                    "realm", "biome", "taxa", "duration", "start_year",
                    "end_year", "long", "lat")
 
-samples_lpd <- mus %>%
+samples_lpd <- lpd %>%
   filter(realm == "Terrestrial") %>%
   dplyr::select(timeseries_id, long, lat) %>%
   distinct() %>% ungroup()

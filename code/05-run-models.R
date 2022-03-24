@@ -222,6 +222,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # Randomly select only a portion of the random sampling points to make the sample sizes more equal
+set.seed(123)
 random_drivers_simple_select <- sample_n(random_drivers_simple, 10000)
 
 drivers_combined_r_r <- bind_rows(drivers_combined, random_drivers_simple_select)
