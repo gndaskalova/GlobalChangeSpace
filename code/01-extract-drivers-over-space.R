@@ -65,7 +65,7 @@ bt <- bt %>%
   filter(REALM != "Freshwater") %>%
   dplyr::select(REALM, BIOME_MAP, TAXA, duration, START_YEAR, END_YEAR, rarefyID_x,
          rarefyID_y, rarefyID) %>%
-  filter(!TAXA %in% c("Fungi", "Reptiles"))
+  filter(!TAXA %in% c("Fungi", "Reptiles")) %>% distinct()
 
 bt$type <- "Biodiversity"
 bt <- bt %>% dplyr::select(type, rarefyID, REALM, BIOME_MAP,
@@ -75,6 +75,13 @@ bt <- bt %>% dplyr::select(type, rarefyID, REALM, BIOME_MAP,
 colnames(bt) <- c("type", "timeseries_id",
                   "realm", "biome", "taxa", "duration", "start_year",
                   "end_year", "long", "lat")
+
+# Sample size per realm
+sample_bt <- bt %>% group_by(realm) %>% summarise(n = n())
+
+#   realm            n
+#   Marine      133343
+#   Terrestrial   7681
 
 # commented out to keep all time series regardless of Class
 # lpd <- lpd %>%
@@ -103,7 +110,13 @@ lpd <- lpd %>% gather(realm_type, biome, c(22, 25))
 
 lpd <- lpd %>%
   dplyr::select(type, ID, System, biome, Class, duration, startYear,
-                endYear, Longitude, Latitude)
+                endYear, Longitude, Latitude) %>% distinct()
+
+# In the data transformation (the gathering) the rows got doubled
+# with an extra row created with a NULL value for biome
+# removing them
+
+lpd <- lpd %>% filter(biome == "NULL")
 
 colnames(lpd) <- c("type", "timeseries_id",
                   "realm", "biome", "taxa", "duration", "start_year",
@@ -114,8 +127,8 @@ colnames(bt)
 bt$timeseries_id <- as.character(bt$timeseries_id)
 lpd$timeseries_id <- as.character(lpd$timeseries_id)
 
-popbio <- rbind(lpd, bt)
-popbio <- distinct(popbio)
+popbio <- bind_rows(lpd, bt)
+popbio <- distinct(popbio) # no duplicates
 # save(popbio, file ="data/input/popbio2022.RData")
 
 # Extract driver data -----
@@ -193,6 +206,7 @@ drivers <- cbind(df13, df14, df15, df16, df17, df18)
 drivers$timeseries_id <- ids$timeseries_id
 
 popbio <- left_join(popbio, drivers, by = "timeseries_id")
+save(popbio, file = "data/output/popbio_drivers2022.RData")
 
 # ATC extraction (combination of drivers, not used in the representation manuscript)
 popbio_terr <- popbio %>% filter(realm == "Terrestrial")
