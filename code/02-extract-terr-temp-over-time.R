@@ -10,6 +10,7 @@
 # Load packages
 library(raster)
 library(ncdf4)
+library(tidyverse)
 
 # The file here is too big for GitHub, you can download it from:
 #https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.01/cruts.1709081022.v4.01/tmp/

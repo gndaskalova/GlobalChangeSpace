@@ -78,7 +78,7 @@ lpd <- lpd %>% gather(realm_type, biome, c(22, 25))
 
 lpd <- lpd %>%
   dplyr::select(type, ID, System, biome, Class, duration, startYear,
-                endYear, Longitude, Latitude)
+                endYear, Longitude, Latitude) %>% distinct()
 
 colnames(lpd) <- c("type", "timeseries_id",
                    "realm", "biome", "taxa", "duration", "start_year",
