@@ -87,7 +87,7 @@ lpd.coords <- lpd.coords %>%
   dplyr::select(timeseries_id, climate_change, human_use,
                 human_population, pollution, 
                 invasions, cumulative,
-                realm, sampling2)
+                realm, sampling2) %>% distinct()
 
 combined_pop <- rbind(random_drivers[, c(1:6, 9, 11)], lpd.coords[, c(2:9)])
 
@@ -243,6 +243,11 @@ drivers_combined_r_r_terr$sampling2 <- factor(drivers_combined_r_r_terr$sampling
                                                          "Living Planet",
                                                          "BioTIME",
                                                          "PREDICTS"))
+
+# Check sample sizes
+samples_terr <- drivers_combined_r_r_terr %>%
+  group_by(sampling2) %>%
+  summarise(n = n())
 
 terr_driver_m <- brm(bf(intensity ~ sampling2*driver), 
                      data = drivers_combined_r_r_terr, 
