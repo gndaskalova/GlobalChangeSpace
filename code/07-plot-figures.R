@@ -45,12 +45,10 @@ library(parameters)
 library(sjPlot)
 library(ggeffects)
 library(broom)
-#devtools::install_github("andrewljackson/SIBER@v2.1.6", 
-#                         build_vignettes = TRUE)
-library(SIBER)
 
 # Load population, biodiversity and driver data
 load("data/output/popbio2022.RData") # Living Planet and BioTIME databases
+popbio <- popbio %>% filter(biome != "NULL") # removing blank duplicates
 
 # Space for time community data from PREDICTS
 # Note this file is not on GitHub because of its size
@@ -176,8 +174,8 @@ combined_pop <- na.omit(combined_pop)
 combined_pop_marine <- combined_pop %>% filter(realm == "Marine")
 combined_pop_terr <- combined_pop %>% filter(realm == "Terrestrial")
 
-combined_pop_marine_simple <- combined_pop_marine %>% dplyr::select(-cumulative, - realm) %>%
-  distinct()
+combined_pop_marine_simple <- combined_pop_marine %>% 
+  dplyr::select(-cumulative, - realm) %>% distinct()
 
 pop_mar_pca <- prcomp(combined_pop_marine_simple[, -6], scale = TRUE)
 
@@ -253,7 +251,8 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
 
 # 69.9% overlap between LPD marine and global sampling
 
-combined_pop_terr_simple <- combined_pop_terr %>% dplyr::select(-cumulative, - realm) %>%
+combined_pop_terr_simple <- combined_pop_terr %>% 
+  dplyr::select(-cumulative, - realm) %>%
   distinct()
 
 pop_terr_pca <- prcomp(combined_pop_terr_simple[, 1:5], scale = TRUE)
@@ -353,8 +352,8 @@ combined_bio <- na.omit(combined_bio)
 combined_bio_marine <- combined_bio %>% filter(realm == "Marine")
 combined_bio_terr <- combined_bio %>% filter(realm == "Terrestrial")
 
-combined_bio_marine_simple <- combined_bio_marine %>% dplyr::select(-cumulative, - realm) %>%
-  distinct()
+combined_bio_marine_simple <- combined_bio_marine %>% 
+  dplyr::select(-cumulative, - realm) %>% distinct()
 
 bio_mar_pca <- prcomp(combined_bio_marine_simple[, -6], scale = TRUE)
 
@@ -431,8 +430,8 @@ prop.95.over <- ellipse95.overlap[3] / (ellipse95.overlap[2] +
 
 # 79.5% overlap between BioTIME marine and global sampling
 
-combined_bio_terr_simple <- combined_bio_terr %>% dplyr::select(-cumulative, - realm) %>%
-  distinct()
+combined_bio_terr_simple <- combined_bio_terr %>% 
+  dplyr::select(-cumulative, - realm) %>% distinct()
 
 bio_terr_pca <- prcomp(combined_bio_terr_simple[, 1:5], scale = TRUE)
 
