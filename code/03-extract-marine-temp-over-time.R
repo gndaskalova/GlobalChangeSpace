@@ -36,6 +36,8 @@ tmp.sites <- data.frame(raster::extract(tmp, samples_simple, ncol = 2)) # Mean m
 # Add sample site names to the data.frame
 tmp.sites$timeseries_id <- samples$timeseries_id
 
+tmp.sites <- na.omit(tmp.sites)
+
 # Save the extracted climate data to a .RData file
 save(tmp.sites, file = "data/output/NOAA_BioTIME2022.RData")
 
@@ -96,6 +98,8 @@ tmp.sites.lpd <- data.frame(raster::extract(tmp, samples_lpd_simple, ncol = 2)) 
 
 # Add sample site names to the data.frame
 tmp.sites.lpd$timeseries_id <- samples_lpd$timeseries_id
+
+tmp.sites.lpd <- na.omit(tmp.sites.lpd)
 
 # Save the extracted climate data to a .RData file
 save(tmp.sites.lpd, file = "data/output/NOAA_LPD2022.RData")
