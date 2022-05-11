@@ -5,9 +5,6 @@
 # The goal of this script is to extract the name of the marine ecoregion
 # in which the marine data points from the Living Planet database are located
 
-# There is no need to do this for the BioTIME data because the data are already included
-# in the metadata
-
 # For terrestrial ecoregion extraction for the LPD, see the Geographic representation
 # section of the script 07-plot-figures.R
 
@@ -113,3 +110,20 @@ length(unique(marine_ecoregions_lpd$ECOREGION))
 # 188 ecoregions
 # Just the number is needed to test % representation
 # There are data from 188 ecoregions for the marine Living Planet Database
+
+# Extract the number of ecoregions for the BioTIME marine time series
+load("data/output/popbio2022.RData") # Living Planet and BioTIME databases
+popbio <- popbio %>% filter(biome != "NULL") # removing blank duplicates
+
+bt_mar <- popbio %>%
+  filter(type == "Biodiversity" & realm == "Marine") %>%
+  dplyr::select(timeseries_id, lat, long) %>% distinct() %>% ungroup()
+
+colnames(bt_mar)[c(2,3)] <- c("lat1", "long1")
+
+marine_ecoregions_bt <- bt_mar %>% 
+  group_by(timeseries_id) %>% 
+  do(getRegionalInfo(.$lat1, .$long1))
+length(unique(marine_ecoregions_bt$ECOREGION))
+
+# 102

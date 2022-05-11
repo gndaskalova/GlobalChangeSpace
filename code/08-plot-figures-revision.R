@@ -1,5 +1,41 @@
+# devtools::install_github("wilkox/treemapify")
+library(treemapify)
+library(viridis)
+# devtools::install_github("eliocamp/ggalt@new-coord-proj")
+library(ggalt)
+library(ggthemes)
 library(tidyverse)
-library(data.table)
+library(stargazer)
+library(gridExtra)
+library(devtools) #Use `install.packages('devtools')` if need be
+# install_github('r-barnes/dggridR', vignette=TRUE)
+library(raster)
+library(rgdal)
+library(ggfortify)
+library(RColorBrewer)
+library(ggridges)
+library(CoordinateCleaner)
+library(hrbrthemes)
+library(mapdata)
+library(cowplot)
+#devtools::install_github("azizka/speciesgeocodeR")
+library(speciesgeocodeR)
+library(readxl)
+# install_github("vqv/ggbiplot")
+library(ggbiplot)
+library(cluster)
+library(rstan)
+library(brms)
+library(modelr)
+library(bayesplot)
+library(tidybayes)
+#install_github("kassambara/factoextra")
+library(factoextra)
+library(sjstats)
+library(parameters)
+library(sjPlot)
+library(ggeffects)
+library(broom)
 
 # Data viz theme
 change_theme <- function(){
@@ -335,6 +371,33 @@ ggsave(full_gc_panel, filename = "figures/full_gc_panel2022.pdf",
 
 ggsave(full_gc_panel, filename = "figures/full_gc_panel2022.png",
        height = 10, width = 16)
+
+# Unsampled global change space projected back to geographic space
+# Human use
+popbio_drivers <- popbio[,c(9, 10, 12)]
+random_drivers_comparison <- random_drivers[,c(7, 8, 2)]
+colnames(popbio_drivers)
+colnames(random_drivers_comparison) <- c("long", "lat", "human_use")
+
+popbio_drivers$human_use <- round(popbio_drivers$human_use, digits = 2)
+random_drivers_comparison$human_use <- round(random_drivers_comparison$human_use, 
+                                              digits = 2)
+
+test <- anti_join(random_drivers_comparison, popbio_drivers, 
+                  by = "human_use")
+
+# Map unsampled terrestrial global change space
+world <- map_data("world")
+
+(map_terr_unsampled <- ggplot(test, aes(x = long, y = lat)) + 
+    #geom_polygon(data = world, aes(x = long, y = lat, group = group), 
+    #             fill = "grey", alpha = 0.3) +
+    geom_point() +
+    # geom_hex(bins = 100) +
+    theme_void())
+  #+
+    #coord_proj("+proj=eck4") +
+   # ylim(-80, 80))
 
 # Fig 2 Distributions of driver intensities ----
 # Standardise between 0 and 1
@@ -1075,3 +1138,561 @@ terr_panel <- grid.arrange(forest_panel, warming_terr_panel, nrow = 1, widths = 
 
 ggsave(terr_panel, filename = "figures/lpd_bt_terr_forest_time_2021.pdf", height = 10, width = 16)
 ggsave(terr_panel, filename = "figures/lpd_bt_terr_forest_time_2021.png", height = 10, width = 16)
+
+# Fig 4 Geographic representation ----
+world <- map_data("world")
+
+# Marine LPD map
+(pop_map_marine <- ggplot(lpd.coords.marine, aes(x = long, y = lat)) + 
+    geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "grey", alpha = 0.3) +
+    geom_bin2d(bins = 100) +
+    # geom_hex(bins = 100) +
+    theme_void() +
+    coord_proj("+proj=eck4") +
+    ylim(-80, 80) +
+    scale_fill_gradient(low = "#50b2b2", high = "#235051",
+                        name = "Number of studies\n(Total = 7078)", 
+                        breaks = c(1, 40, 80),
+                        guide = guide_legend(keyheight = unit(2.5, units = "mm"),
+                                             keywidth = unit(8, units = "mm"), 
+                                             label.position = "bottom", 
+                                             title.position = 'top', nrow=1))  +
+    ggtitle("\nb     Living Planet (marine)") +
+    theme(legend.position = c(0.14, 0.16),
+          legend.title=element_text(color = "black", size = 10, hjust = 0.5),
+          text = element_text(color = "#22211d"),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+# Terrestrial LPD map
+(pop_map_terr <- ggplot(lpd.coords.terr, aes(x = long, y = lat)) + 
+    geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "grey", alpha = 0.3) +
+    geom_bin2d(bins = 100) +
+    theme_void() +
+    coord_proj("+proj=eck4") +
+    ylim(-80, 80) +
+    scale_fill_gradient(low = "#be925a", high = "#36230d",
+                        name = "Number of studies\n(Total = 4862)", 
+                        breaks = c(1, 150, 300),
+                        guide = guide_legend(keyheight = unit(2.5, units = "mm"),
+                                             keywidth = unit(8, units = "mm"), 
+                                             label.position = "bottom", 
+                                             title.position = 'top', nrow=1))  +
+    ggtitle("\na     Living Planet (terrestrial)") +
+    theme(legend.position = c(0.14, 0.16),
+          legend.title = element_text(color = "black", size = 10, hjust = 0.5),
+          text = element_text(color = "#22211d"),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+# Marine BioTIME map
+(bio_map_marine <- ggplot(bt.coords.marine, aes(x = long, y = lat)) + 
+    geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "grey", alpha = 0.3) +
+    geom_bin2d(bins = 100) +
+    # geom_hex(bins = 100) +
+    theme_void() +
+    coord_proj("+proj=eck4") +
+    ylim(-80, 80) +
+    scale_fill_gradient(low = "#5c98bd", high = "#233d4d",
+                        name = "Number of studies\n(Total = 45432)", 
+                        breaks = c(1, 500, 1500),
+                        guide = guide_legend(keyheight = unit(2.5, units = "mm"),
+                                             keywidth = unit(8, units = "mm"), 
+                                             label.position = "bottom", 
+                                             title.position = 'top', nrow=1))  +
+    ggtitle("\nd     BioTIME (marine)") +
+    theme(legend.position = c(0.14, 0.16),
+          legend.title=element_text(color = "black", size = 10, hjust = 0.5),
+          text = element_text(color = "#22211d"),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+# Terrestrial BioTIME map
+(bio_map_terr <- ggplot(bt.coords.terr, aes(x = long, y = lat)) + 
+    geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "grey", alpha = 0.3) +
+    geom_bin2d(bins = 100) +
+    theme_void() +
+    coord_proj("+proj=eck4") +
+    ylim(-80, 80) +
+    scale_fill_gradient(low = "#eaa9bc", high = "#441540",
+                        name = "Number of studies\n(Total = 1942)", 
+                        breaks = c(1, 100, 200),
+                        guide = guide_legend(keyheight = unit(2.5, units = "mm"),
+                                             keywidth = unit(8, units = "mm"), 
+                                             label.position = "bottom", 
+                                             title.position = 'top', nrow=1))  +
+    ggtitle("\nc     BioTIME (terrestrial)") +
+    theme(legend.position = c(0.14, 0.16),
+          legend.title = element_text(color = "black", size = 10, hjust = 0.5),
+          text = element_text(color = "#22211d"),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(predicts_map <- ggplot(predicts.coords, aes(x = Longitude, y = Latitude)) + 
+    geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "grey", alpha = 0.3) +
+    geom_bin2d(bins = 100) +
+    theme_void() +
+    coord_proj("+proj=eck4") +
+    ylim(-80, 80) +
+    scale_fill_gradient(low = "#a3ad62", high = "#242610",
+                        name = "Number of studies\n(Total = 658)", 
+                        breaks = c(1, 5, 10),
+                        guide = guide_legend(keyheight = unit(2.5, units = "mm"),
+                                             keywidth = unit(10, units = "mm"), 
+                                             label.position = "bottom", 
+                                             title.position = 'top', nrow=1))  +
+    ggtitle("\ne     PREDICTS (terrestrial)") +
+    theme(legend.position = c(0.14, 0.16),
+          legend.title = element_text(color = "black", size = 10, hjust = 0.5),
+          text = element_text(color = "#22211d"),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+# Number of ecoregions barplot
+# There are 867 terrestrial ecoregions, classified into 14 different biomes
+length(unique(predicts$Ecoregion))
+# 281
+281/867
+# 0.3241061 for PREDICTS
+
+setwd("data/ecoregions")
+wd <- getwd()
+wwf <- WWFload(wd)
+
+#Ecoregions
+lpd.coords2 <- lpd.coords %>% filter(realm == "Terrestrial")
+colnames(lpd.coords2)[c(9,10)] <- c("decimallongitude", "decimallatitude")
+lpd.coords2 <- lpd.coords2 %>% dplyr::select(timeseries_id, decimallongitude, decimallatitude)
+colnames(lpd.coords2)[1] <- "species"
+lpd.coords2 <- as.data.frame(lpd.coords2)
+outp <- SpGeoCod(lpd.coords2, wwf, areanames = "ECO_NAME")
+counts <- outp$samples
+length(unique(counts$homepolygon))
+
+# 411 terrestrial ecoregions
+411/867
+# 0.4740484 for LPD terrestrial
+
+bt.coords2 <- bt.coords %>% filter(realm == "Terrestrial")
+colnames(bt.coords2)[c(9,10)] <- c("decimallongitude", "decimallatitude")
+bt.coords2 <- bt.coords2 %>% dplyr::select(timeseries_id, decimallongitude, decimallatitude)
+colnames(bt.coords2)[1] <- "species"
+bt.coords2 <- as.data.frame(bt.coords2)
+outp <- SpGeoCod(bt.coords2, wwf, areanames = "ECO_NAME")
+counts <- outp$samples
+length(unique(counts$homepolygon))
+
+# 134 terrestrial ecoregions
+134/867
+# 0.1545559 for BioTIME terrestrial
+
+# LPD marine see separate script marine-ecoregion-lpd-extraction.R
+# 188 marine ecoregions
+188/232
+# 0.8103448 for LPD marine
+
+# BioTIME marine see separate script marine-ecoregion-lpd-extraction.R
+#  marine ecoregions
+/232
+#  for BioTIME marine
+
+# Change back the working directory
+setwd("~/GlobalChangeSpace")
+
+ecoregion_totals <- data.frame(c("LPD (terrestrial)", "LPD (marine)",
+                                 "BioTIME (terrestrial)", "BioTIME (marine)",
+                                 "PREDICTS (terrestrial"), c(0.4740484, 0.8103448,
+                                                             0.1545559, 0.4827586,
+                                                             0.3241061))
+
+colnames(ecoregion_totals) <- c("database", "totals")
+
+# Arrange data frame
+ecoregion_totals$database <- factor(ecoregion_totals$database,
+                                    levels = c("LPD (terrestrial)", "LPD (marine)",
+                                               "BioTIME (terrestrial)", "BioTIME (marine)",
+                                               "PREDICTS (terrestrial"),
+                                    labels = c("LPD (terrestrial)", "LPD (marine)",
+                                               "BioTIME (terrestrial)", "BioTIME (marine)",
+                                               "PREDICTS (terrestrial)"))
+
+(ecoregion_barplot <- ggplot(ecoregion_totals) +      
+    geom_bar(aes(x = as.factor(database), y = totals, fill = database), 
+             stat = "identity", width=0.8, position = position_dodge(width=0.2)) +
+    geom_text(aes(x = as.factor(database), y = totals, label = round(totals*100)), 
+              position = position_dodge(width = 0.9), 
+              vjust = -0.25) +
+    ggtitle("\nf     Ecoregion representation (%)") +
+    labs(x = NULL, y = "Number of studies\n") +
+    scale_fill_manual(values = c("#a26929", "#009392",
+                                 "#91367e", "#3b738f",
+                                 "#7a8235")) +
+    theme_void() +
+    guides(fill = F) +
+    theme(axis.text.x = element_text(angle = 0),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+ecoregion_totals$totals <- ecoregion_totals$totals*100
+ecoregion_totals$unsurveyed <- 100 - ecoregion_totals$totals
+ecoregion_totals <- ecoregion_totals %>% gather(type, value, 2:3)
+ecoregion_totals$category <- paste0(ecoregion_totals$database, ecoregion_totals$type)
+ecoregion_totals$value2 <- factor(c("30%", "69%", "16%", "48%", "32%", NA, NA, NA, NA, NA))
+
+(ecoregion_barplot <- ggplot(ecoregion_totals) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(type),
+                 colour = category), 
+             stat = "identity", width=0.8, position = "fill") +
+    ggtitle("\ng     Ecoregion representation\n") +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = "Percentage of ecoregions represented in databases\n") +
+    scale_fill_manual(values = c("#3b738f", "white",
+                                 "#91367e", "white", 
+                                 "#009392", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#3b738f", "#3b738f",
+                                   "#91367e", "#91367e", 
+                                   "#009392", "#009392",
+                                   "#a26929", "#a26929",
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    coord_flip() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+ggsave(ecoregion_barplot, filename = "figures/ecoregion_barplotJune.pdf", 
+       height = 3, width = 8)
+
+# Combine all maps and barplot into a panel
+map_panel <- grid.arrange(pop_map_terr, pop_map_marine,
+                          bio_map_terr, bio_map_marine,
+                          predicts_map,
+                          nrow = 3)
+
+ggsave(map_panel, filename = "figures/Figure3_April2021.pdf", device = "pdf")
+
+
+# Fig 5 Taxonomic representation ----
+global_mus_scaled <- read.csv("~/RarityHub/data/input/global_mus_scaled.csv")
+
+global_mus_scaled$species <- paste(global_mus_scaled$Genus,
+                                   global_mus_scaled$Species, sep = " ")
+
+lpd_taxa_sum <- global_mus_scaled %>%
+  dplyr::select(Class, species) %>%
+  distinct() %>%
+  group_by(Class) %>% tally()
+
+predicts$species <- paste(predicts$Genus, predicts$Species, sep = " ")
+
+predicts_taxa_sum <- predicts %>% dplyr::select(Phylum, Class, species) %>%
+  distinct() %>%
+  group_by(Phylum, Class) %>% tally()
+
+BioTIMEQSept18 <- read.csv("~/BioTIMELatest/BioTIMEQSept18.csv")
+bioTIMEmetadataSept18 <- read.csv("~/BioTIMELatest/bioTIMEmetadataSept18.csv")
+
+taxa_meta <- bioTIMEmetadataSept18 %>% dplyr::select(STUDY_ID, TAXA) %>%
+  distinct()
+
+BioTIMEQSept18 <- left_join(BioTIMEQSept18, taxa_meta, by = "STUDY_ID")
+
+biotime_taxa_sum <- BioTIMEQSept18 %>% dplyr::select(TAXA, GENUS_SPECIES) %>%
+  distinct() %>% group_by(TAXA) %>% tally()
+
+taxa_sums <- read_excel("data/input/taxa_sums.xlsx")
+
+taxa_sums$database <- factor(taxa_sums$database, levels = c("LPD",
+                                                            "BioTIME",
+                                                            "PREDICTS"),
+                             labels = c("LPD",
+                                        "BioTIME",
+                                        "PREDICTS"))
+
+# Birds, Fish, Mammals, Amphibians, Sharks, Reptiles, Terrestrial plants, Arthropods
+taxa_sums$class <- factor(taxa_sums$class, levels = c("Arthropoda",
+                                                      "Tracheophyta",
+                                                      "Reptilia",
+                                                      "Elasmobranchii",
+                                                      "Amphibia",
+                                                      "Mammalia",
+                                                      "Actinopterygii",
+                                                      "Aves"),
+                          labels = c("Arthropods", 
+                                     "Terrestrial plants", "Reptiles",
+                                     "Sharks", 
+                                     "Amphibians", "Mammals", "Bony fish", "Birds"))
+
+taxa_sums$unsurveyed <- 100 - taxa_sums$percentage
+taxa_sums <- taxa_sums %>% gather(type, value, 5:6)
+taxa_sums$category <- paste0(taxa_sums$database, taxa_sums$type)
+taxa_sums$value2 <- round(taxa_sums$value)
+taxa_sums$value2 <- paste0(taxa_sums$value2, "%")
+taxa_sums[25:48,8] <- NA
+
+(taxa_barplot_birds <- ggplot(taxa_sums[taxa_sums$class == "Birds",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929",
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+# Changing 2% to NA just for aesthetics as the text is not visible
+taxa_sums[6,8] <- NA
+
+(taxa_barplot_bony_fish <- ggplot(taxa_sums[taxa_sums$class == "Bony fish",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(taxa_barplot_mammals <- ggplot(taxa_sums[taxa_sums$class == "Mammals",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(taxa_barplot_amphibians <- ggplot(taxa_sums[taxa_sums$class == "Amphibians",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(taxa_barplot_sharks <- ggplot(taxa_sums[taxa_sums$class == "Sharks",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(taxa_barplot_reptiles <- ggplot(taxa_sums[taxa_sums$class == "Reptiles",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(taxa_barplot_terr_plants <- ggplot(taxa_sums[taxa_sums$class == "Terrestrial plants",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+(taxa_barplot_arthropods <- ggplot(taxa_sums[taxa_sums$class == "Arthropods",]) +      
+    geom_bar(aes(x = fct_rev(database), y = value, fill = category, group = fct_rev(database),
+                 colour = category), 
+             stat = "identity", width = 0.8, position = "fill") +
+    #ggtitle("\nf     Ecoregion representation\n") +
+    coord_flip() +
+    geom_text(
+      aes(x = fct_rev(database), y = value, label = value2, group = fct_rev(type)),
+      position = "fill", fontface = "bold",
+      hjust = 1.2, size = 5, colour = "white") +
+    labs(x = NULL, y = NULL) +
+    scale_fill_manual(values = c("#91367e", "white",
+                                 "#a26929", "white",
+                                 "#7a8235", "white")) +
+    scale_colour_manual(values = c("#91367e", "#91367e",
+                                   "#a26929", "#a26929", 
+                                   "#7a8235", "#7a8235")) +
+    theme_void() +
+    guides(fill = F, colour = F) +
+    theme(legend.position = c(0.14, 0.12),
+          legend.title = element_text(color = "black", size = 10),
+          text = element_text(color = "#22211d"),
+          axis.text.y = element_text(size = 14, hjust = 0.95, vjust = 0.2),
+          axis.title.x = element_text(size = 14),
+          plot.title = element_text(size = 14, hjust = 0.05, 
+                                    color = "grey20", face = "bold")))
+
+# Combine in a panel
+taxa_panel <- grid.arrange(taxa_barplot_birds, 
+                           taxa_barplot_bony_fish,
+                           taxa_barplot_mammals,
+                           taxa_barplot_amphibians,
+                           taxa_barplot_sharks,
+                           taxa_barplot_reptiles,
+                           taxa_barplot_terr_plants,
+                           taxa_barplot_arthropods,
+                           nrow = 8)
+
+ggsave(taxa_panel, filename = "figures/Figure4_taxa.pdf", height = 10, width = 30)
+
+# Make donut charts of all known and predicted species
+all_species_counts <- read.csv("data/input/all_species_counts.csv")
+all_species_counts_long <- all_species_counts %>% gather(type, value, c(4, 5, 9))
+
+all_species_counts_long$type <- factor(all_species_counts_long$type,
+                                       levels = c("catalogued", "predicted", "monitored"),
+                                       labels = c("Catalogued", "Predicted", "Monitored"))
+
+all_species_counts_long$realm <- factor(all_species_counts_long$realm,
+                                        levels = c("Terrestrial", "Marine"),
+                                        labels = c("Terrestrial", "Marine"))
+# plot
+(donuts <- ggplot(all_species_counts_long, aes(x=2, y=value, fill=type)) +
+    geom_bar(position = 'fill', stat = 'identity')  +
+    facet_grid(realm ~ group) + 
+    xlim(0.5, 2.5) +
+    #coord_polar(theta = 'y') + 
+    labs(x = NULL, y = NULL) +
+    # theme_void() +
+    scale_fill_manual(values = c("#4c8cac", "#abdbdb", "#cf994c")))
+
+ggsave(donuts, filename = "figures/donuts.pdf", height = 5, width = 10)
+
+# Supplementary figures ----

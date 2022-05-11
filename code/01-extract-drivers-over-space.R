@@ -77,7 +77,7 @@ colnames(bt) <- c("type", "timeseries_id",
                   "end_year", "long", "lat")
 
 # Sample size per realm
-sample_bt <- bt %>% group_by(realm) %>% summarise(n = n())
+sample_bt <- bt %>% group_by(realm) %>% dplyr::summarise(n = n())
 
 #   realm            n
 #   Marine      133343
@@ -314,7 +314,7 @@ dggs <- dgconstruct(res = 12, metric = FALSE, resround = 'nearest')
 
 maxcell <- dgmaxcell(dggs)                     #Get maximum cell id
 cells <- sample(1:maxcell, N, replace = FALSE) #Choose random cells
-grid <- dgcellstogrid(dggs, cells, frame = TRUE, wrapcells = TRUE) #Get grid
+grid <- dgcellstogrid(dggs, cells) #Get grid
 
 #Get polygons for each country of the world
 countries <- map_data("world")
